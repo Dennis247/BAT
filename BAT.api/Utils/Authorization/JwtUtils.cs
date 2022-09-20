@@ -1,13 +1,15 @@
-namespace WebApi.Authorization;
+namespace BAT.api.Authorization;
 
+using BAT.api.Data;
+using BAT.api.Helpers;
+using BAT.api.Models.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using WebApi.Entities;
-using WebApi.Helpers;
+
 
 public interface IJwtUtils
 {

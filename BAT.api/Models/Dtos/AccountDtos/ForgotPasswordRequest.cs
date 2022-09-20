@@ -1,4 +1,5 @@
-namespace WebApi.Models.Accounts;
+namespace BAT.api.Models.Dtos.AccountDtos;
+
 
 using System.ComponentModel.DataAnnotations;
 

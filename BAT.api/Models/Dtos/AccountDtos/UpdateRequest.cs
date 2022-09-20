@@ -1,7 +1,8 @@
-namespace WebApi.Models.Accounts;
+namespace BAT.api.Models.Dtos.AccountDtos;
 
+using BAT.api.Models.enums;
 using System.ComponentModel.DataAnnotations;
-using WebApi.Entities;
+
 
 public class UpdateRequest
 {

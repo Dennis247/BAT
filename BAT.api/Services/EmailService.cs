@@ -1,5 +1,6 @@
 namespace WebApi.Services;
 
+using BAT.api.Helpers;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,7 @@ using MimeKit;
 using MimeKit.Text;
 using SendGrid;
 using SendGrid.Helpers.Mail;
-using WebApi.Helpers;
+
 
 public interface IEmailService
 {

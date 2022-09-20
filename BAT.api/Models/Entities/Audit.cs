@@ -7,7 +7,7 @@ namespace BAT.api.Models.Entities
     public class Audit
     {
         public int Id { get; set; }
-        public string UserId { get; set; }
+        public int UserId { get; set; }
         public string UserName { get; set; }
         public string Type { get; set; }
         public string TableName { get; set; }
@@ -33,7 +33,7 @@ namespace BAT.api.Models.Entities
             Entry = entry;
         }
         public EntityEntry Entry { get; }
-        public string UserId { get; set; }
+        public int UserId { get; set; }
         public string TableName { get; set; }
         public Dictionary<string, object> KeyValues { get; } = new Dictionary<string, object>();
         public Dictionary<string, object> OldValues { get; } = new Dictionary<string, object>();

@@ -1,7 +1,10 @@
 namespace WebApi.Authorization;
 
+using BAT.api.Authorization;
+using BAT.api.Data;
+using BAT.api.Helpers;
 using Microsoft.Extensions.Options;
-using WebApi.Helpers;
+
 
 public class JwtMiddleware
 {

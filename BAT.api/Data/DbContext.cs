@@ -1,5 +1,4 @@
-﻿
-using BAT.api.Models.Entities;
+﻿using BAT.api.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -10,13 +9,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Iyenova.Api.Data
+namespace BAT.api.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class DataContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        private readonly IHttpContextAccessor _context;
+        public DataContext(DbContextOptions<DataContext> options, IHttpContextAccessor context) : base(options)
         {
-
+            _context = context;
         }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Audit> AuditLogs { get; set; }
@@ -29,7 +29,7 @@ namespace Iyenova.Api.Data
         }
         private void OnBeforeSaveChanges()
         {
-            var User = (User)_context.HttpContext.Items["User"];
+            Account User = (Account)_context.HttpContext.Items["Account"];
 
             ChangeTracker.DetectChanges();
             var auditEntries = new List<AuditEntry>();
@@ -39,12 +39,12 @@ namespace Iyenova.Api.Data
                     continue;
                 var auditEntry = new AuditEntry(entry);
                 auditEntry.TableName = entry.Entity.GetType().Name;
-                auditEntry.UserId = User?.Id;
+                auditEntry.UserId = User.Id;
                 auditEntry.BrowserInfo = _context.HttpContext.Request.Headers["User-Agent"].ToString();
                 auditEntry.HttpMethod = _context.HttpContext.Request.Method;
                 auditEntry.AreaAccessed = _context.HttpContext.Request.Path.Value;
                 auditEntry.TraceId = _context.HttpContext.TraceIdentifier;
-                auditEntry.UserName = User?.UserName;
+                auditEntry.UserName = User.Email;
 
                 auditEntries.Add(auditEntry);
                 foreach (var property in entry.Properties)

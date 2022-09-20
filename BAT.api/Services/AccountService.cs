@@ -1,6 +1,12 @@
 namespace WebApi.Services;
 
 using AutoMapper;
+using BAT.api.Authorization;
+using BAT.api.Data;
+using BAT.api.Helpers;
+using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Entities;
+using BAT.api.Models.enums;
 using BCrypt.Net;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -8,10 +14,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using WebApi.Authorization;
-using WebApi.Entities;
-using WebApi.Helpers;
-using WebApi.Models.Accounts;
 
 public interface IAccountService
 {

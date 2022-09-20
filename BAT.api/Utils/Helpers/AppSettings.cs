@@ -1,4 +1,4 @@
-namespace WebApi.Helpers;
+namespace BAT.api.Helpers;
 
 public class AppSettings
 {

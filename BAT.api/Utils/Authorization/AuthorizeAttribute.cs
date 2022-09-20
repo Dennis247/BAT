@@ -1,8 +1,10 @@
-namespace WebApi.Authorization;
 
+
+using BAT.api.Authorization;
+using BAT.api.Models.Entities;
+using BAT.api.Models.enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using WebApi.Entities;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class AuthorizeAttribute : Attribute, IAuthorizationFilter

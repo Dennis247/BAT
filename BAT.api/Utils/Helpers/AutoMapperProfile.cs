@@ -1,8 +1,7 @@
-namespace WebApi.Helpers;
-
+namespace BAT.api.Helpers;
 using AutoMapper;
-using WebApi.Entities;
-using WebApi.Models.Accounts;
+using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Entities;
 
 public class AutoMapperProfile : Profile
 {

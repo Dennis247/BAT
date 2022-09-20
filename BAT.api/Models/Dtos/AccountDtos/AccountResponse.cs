@@ -1,4 +1,4 @@
-namespace WebApi.Models.Accounts;
+namespace BAT.api.Models.Dtos.AccountDtos;
 
 public class AccountResponse
 {

@@ -1,5 +1,6 @@
-namespace WebApi.Helpers;
+namespace BAT.api.Helpers;
 
+using BAT.api.Helpers;
 using System.Net;
 using System.Text.Json;
 
