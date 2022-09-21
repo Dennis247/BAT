@@ -1,4 +1,4 @@
-namespace WebApi.Services;
+namespace BAT.api.Services;
 
 using AutoMapper;
 using BAT.api.Authorization;
@@ -7,6 +7,7 @@ using BAT.api.Helpers;
 using BAT.api.Models.Dtos.AccountDtos;
 using BAT.api.Models.Entities;
 using BAT.api.Models.enums;
+using BAT.api.Models.Response;
 using BCrypt.Net;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -17,31 +18,27 @@ using System.Text;
 
 public interface IAccountService
 {
-    AuthenticateResponse Authenticate(AuthenticateRequest model, string ipAddress);
-    AuthenticateResponse RefreshToken(string token, string ipAddress);
-    void RevokeToken(string token, string ipAddress);
-    void Register(RegisterRequest model, string origin);
-    void VerifyEmail(string token);
-    void ForgotPassword(ForgotPasswordRequest model, string origin);
-    void ValidateResetToken(ValidateResetTokenRequest model);
-    void ResetPassword(ResetPasswordRequest model);
-    IEnumerable<AccountResponse> GetAll();
-    AccountResponse GetById(int id);
-    AccountResponse Create(CreateRequest model);
-    AccountResponse Update(int id, UpdateRequest model);
-    void Delete(int id);
+    Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress);
+    Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
+    Response<IEnumerable<AccountResponse>> GetAll();
+    Response<AccountResponse> GetById(int id);
+    Response<AuthenticateResponse> RefreshToken(string token, string ipAddress);
+    Response<int> Register(RegisterRequest model, string origin);
+    Response<string> ResetPassword(ResetPasswordRequest model);
+    Response<bool> RevokeToken(string token, string ipAddress);
+    Response<string> VerifyEmail(string token);
 }
 
 public class AccountService : IAccountService
 {
-    private readonly DataContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IJwtUtils _jwtUtils;
     private readonly IMapper _mapper;
     private readonly AppSettings _appSettings;
     private readonly IEmailService _emailService;
 
     public AccountService(
-        DataContext context,
+        ApplicationDbContext context,
         IJwtUtils jwtUtils,
         IMapper mapper,
         IOptions<AppSettings> appSettings,
@@ -54,12 +51,13 @@ public class AccountService : IAccountService
         _emailService = emailService;
     }
 
-    public AuthenticateResponse Authenticate(AuthenticateRequest model, string ipAddress)
+    public Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress)
     {
-        var account = _context.Accounts.SingleOrDefault(x => x.Email == model.Email);
+        var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
+        && x.LastName.ToLower() == model.LastName.ToLower());
 
         // validate
-        if (account == null || !account.IsVerified || !BCrypt.Verify(model.Password, account.PasswordHash))
+        if (account == null || !BCrypt.Verify(model.Password, account.PasswordHash) || !BCrypt.Verify(model.SecretAnswer, account.SecretAnswer))
             throw new AppException("Email or password is incorrect");
 
         // authentication successful so generate jwt and refresh tokens
@@ -77,10 +75,15 @@ public class AccountService : IAccountService
         var response = _mapper.Map<AuthenticateResponse>(account);
         response.JwtToken = jwtToken;
         response.RefreshToken = refreshToken.Token;
-        return response;
+        return new Response<AuthenticateResponse>
+        {
+            Data = response,
+            Message = "Login Sucessful",
+            Succeeded = true
+        };
     }
 
-    public AuthenticateResponse RefreshToken(string token, string ipAddress)
+    public Response<AuthenticateResponse> RefreshToken(string token, string ipAddress)
     {
         var account = getAccountByRefreshToken(token);
         var refreshToken = account.RefreshTokens.Single(x => x.Token == token);
@@ -114,10 +117,15 @@ public class AccountService : IAccountService
         var response = _mapper.Map<AuthenticateResponse>(account);
         response.JwtToken = jwtToken;
         response.RefreshToken = newRefreshToken.Token;
-        return response;
+        return new Response<AuthenticateResponse>
+        {
+            Succeeded = true,
+            Message = "Sucessful",
+            Data = response,
+        };
     }
 
-    public void RevokeToken(string token, string ipAddress)
+    public Response<bool> RevokeToken(string token, string ipAddress)
     {
         var account = getAccountByRefreshToken(token);
         var refreshToken = account.RefreshTokens.Single(x => x.Token == token);
@@ -129,17 +137,25 @@ public class AccountService : IAccountService
         revokeRefreshToken(refreshToken, ipAddress, "Revoked without replacement");
         _context.Update(account);
         _context.SaveChanges();
+
+        return new Response<bool> { Succeeded = true, Message = "Revoke Token SUcessful", Data = true };
     }
 
-    public void Register(RegisterRequest model, string origin)
+    public Response<int> Register(RegisterRequest model, string origin)
     {
-        // validate
-        if (_context.Accounts.Any(x => x.Email == model.Email))
+        // check if user already exist using first name , last name and password
+
+        var secretHash = BCrypt.HashPassword(model.SecretAnswer);
+
+        if (_context.Accounts.Any(x =>
+        x.FirstName.ToLower() == model.FirstName.ToLower()
+         && x.LastName.ToLower() == model.LastName.ToLower() && (x.SecretAnswer == secretHash)
+   ))
         {
-            // send already registered error in email to prevent account enumeration
-            sendAlreadyRegisteredEmail(model.Email, origin);
-            return;
+            throw new AppException("Your information matches an existing user,\nplease fill in the correct information or sign in");
         }
+
+
 
         // map model to new account object
         var account = _mapper.Map<Account>(model);
@@ -150,8 +166,9 @@ public class AccountService : IAccountService
         account.Created = DateTime.UtcNow;
         account.VerificationToken = generateVerificationToken();
 
-        // hash password
+        // hash password & sceurity answer
         account.PasswordHash = BCrypt.HashPassword(model.Password);
+        account.SecretAnswer = BCrypt.HashPassword(model.SecretAnswer);
 
         // save account
         _context.Accounts.Add(account);
@@ -159,13 +176,20 @@ public class AccountService : IAccountService
 
         // send email
         sendVerificationEmail(account, origin);
+
+        return new Response<int>
+        {
+            Data = account.Id,
+            Succeeded = true,
+            Message = "User Registration sucessful"
+        };
     }
 
-    public void VerifyEmail(string token)
+    public Response<string> VerifyEmail(string token)
     {
         var account = _context.Accounts.SingleOrDefault(x => x.VerificationToken == token);
 
-        if (account == null) 
+        if (account == null)
             throw new AppException("Verification failed");
 
         account.Verified = DateTime.UtcNow;
@@ -173,32 +197,50 @@ public class AccountService : IAccountService
 
         _context.Accounts.Update(account);
         _context.SaveChanges();
+
+        return new Response<string>
+        {
+            Data = null,
+            Message = "Verification Sucessful",
+            Succeeded = true
+        };
+
+
     }
 
-    public void ForgotPassword(ForgotPasswordRequest model, string origin)
+    public Response<string> ForgotPassword(ForgotPasswordRequest model, string origin)
     {
-        var account = _context.Accounts.SingleOrDefault(x => x.Email == model.Email);
+        var secretAnswerHash = BCrypt.HashPassword(model.SecretAnswer);
+        var account = _context.Accounts.SingleOrDefault(x => BCrypt.HashPassword(x.SecretAnswer) == BCrypt.HashPassword(secretAnswerHash));
 
         // always return ok response to prevent email enumeration
-        if (account == null) return;
+        if (account == null)
+            return new Response<string>
+            {
+                Succeeded = false,
+                Message = "Account not valid",
+                Data = null
+            };
 
         // create reset token that expires after 1 day
         account.ResetToken = generateResetToken();
-        account.ResetTokenExpires = DateTime.UtcNow.AddDays(1);
+        account.ResetTokenExpires = DateTime.UtcNow.AddMinutes(10);
 
         _context.Accounts.Update(account);
         _context.SaveChanges();
 
         // send email
         sendPasswordResetEmail(account, origin);
+
+        return new Response<string>
+        {
+            Data = null,
+            Message = "Reset Password Email Sent Sucessfully.",
+            Succeeded = true
+        };
     }
 
-    public void ValidateResetToken(ValidateResetTokenRequest model)
-    {
-        getAccountByResetToken(model.Token);
-    }
-
-    public void ResetPassword(ResetPasswordRequest model)
+    public Response<string> ResetPassword(ResetPasswordRequest model)
     {
         var account = getAccountByResetToken(model.Token);
 
@@ -210,70 +252,45 @@ public class AccountService : IAccountService
 
         _context.Accounts.Update(account);
         _context.SaveChanges();
+
+        return new Response<string>
+        {
+            Data = null,
+            Message = "Reste Password Sucessful,\nYou can now login",
+            Succeeded = true
+        };
     }
 
-    public IEnumerable<AccountResponse> GetAll()
+    public Response<IEnumerable<AccountResponse>> GetAll()
     {
         var accounts = _context.Accounts;
-        return _mapper.Map<IList<AccountResponse>>(accounts);
+        var users = _mapper.Map<IList<AccountResponse>>(accounts);
+        return new Response<IEnumerable<AccountResponse>>
+        {
+            Succeeded = true,
+            Message = "Sucessful",
+            Data = users
+        };
     }
 
-    public AccountResponse GetById(int id)
+    public Response<AccountResponse> GetById(int id)
     {
         var account = getAccount(id);
-        return _mapper.Map<AccountResponse>(account);
+        var user = _mapper.Map<AccountResponse>(account);
+        return new Response<AccountResponse>
+        {
+            Succeeded = true,
+            Message = "Sucessful",
+            Data = user
+        };
     }
 
-    public AccountResponse Create(CreateRequest model)
-    {
-        // validate
-        if (_context.Accounts.Any(x => x.Email == model.Email))
-            throw new AppException($"Email '{model.Email}' is already registered");
 
-        // map model to new account object
-        var account = _mapper.Map<Account>(model);
-        account.Created = DateTime.UtcNow;
-        account.Verified = DateTime.UtcNow;
 
-        // hash password
-        account.PasswordHash = BCrypt.HashPassword(model.Password);
-
-        // save account
-        _context.Accounts.Add(account);
-        _context.SaveChanges();
-
-        return _mapper.Map<AccountResponse>(account);
-    }
-
-    public AccountResponse Update(int id, UpdateRequest model)
-    {
-        var account = getAccount(id);
-
-        // validate
-        if (account.Email != model.Email && _context.Accounts.Any(x => x.Email == model.Email))
-            throw new AppException($"Email '{model.Email}' is already registered");
-
-        // hash password if it was entered
-        if (!string.IsNullOrEmpty(model.Password))
-            account.PasswordHash = BCrypt.HashPassword(model.Password);
-
-        // copy model to account and save
-        _mapper.Map(model, account);
-        account.Updated = DateTime.UtcNow;
-        _context.Accounts.Update(account);
-        _context.SaveChanges();
-
-        return _mapper.Map<AccountResponse>(account);
-    }
-
-    public void Delete(int id)
-    {
-        var account = getAccount(id);
-        _context.Accounts.Remove(account);
-        _context.SaveChanges();
-    }
 
     // helper methods
+
+ 
 
     private Account getAccount(int id)
     {
@@ -320,20 +337,22 @@ public class AccountService : IAccountService
         var tokenIsUnique = !_context.Accounts.Any(x => x.ResetToken == token);
         if (!tokenIsUnique)
             return generateResetToken();
-        
+
         return token;
     }
 
     private string generateVerificationToken()
     {
         // token is a cryptographically strong random sequence of values
-        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+       // var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+
+        var token = new Random().Next(0,999999).ToString();
 
         // ensure token is unique by checking against db
         var tokenIsUnique = !_context.Accounts.Any(x => x.VerificationToken == token);
         if (!tokenIsUnique)
             return generateVerificationToken();
-        
+
         return token;
     }
 
@@ -346,8 +365,8 @@ public class AccountService : IAccountService
 
     private void removeOldRefreshTokens(Account account)
     {
-        account.RefreshTokens.RemoveAll(x => 
-            !x.IsActive && 
+        account.RefreshTokens.RemoveAll(x =>
+            !x.IsActive &&
             x.Created.AddDays(_appSettings.RefreshTokenTTL) <= DateTime.UtcNow);
     }
 
@@ -400,22 +419,7 @@ public class AccountService : IAccountService
         );
     }
 
-    private void sendAlreadyRegisteredEmail(string email, string origin)
-    {
-        string message;
-        if (!string.IsNullOrEmpty(origin))
-            message = $@"<p>If you don't know your password please visit the <a href=""{origin}/account/forgot-password"">forgot password</a> page.</p>";
-        else
-            message = "<p>If you don't know your password you can reset it via the <code>/accounts/forgot-password</code> api route.</p>";
 
-        _emailService.Send(
-            to: email,
-            subject: "Sign-up Verification API - Email Already Registered",
-            html: $@"<h4>Email Already Registered</h4>
-                        <p>Your email <strong>{email}</strong> is already registered.</p>
-                        {message}"
-        );
-    }
 
     private void sendPasswordResetEmail(Account account, string origin)
     {

@@ -20,11 +20,11 @@ public interface IJwtUtils
 
 public class JwtUtils : IJwtUtils
 {
-    private readonly DataContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly AppSettings _appSettings;
 
     public JwtUtils(
-        DataContext context,
+        ApplicationDbContext context,
         IOptions<AppSettings> appSettings)
     {
         _context = context;

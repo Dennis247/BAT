@@ -24,7 +24,6 @@ namespace BAT.api.Models.Response
             Data = data;
             Message = null;
             Succeeded = true;
-            Errors = null;
         }
     }
 }

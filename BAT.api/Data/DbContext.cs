@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 
 namespace BAT.api.Data
 {
-    public class DataContext : DbContext
+    public class ApplicationDbContext : DbContext
     {
         private readonly IHttpContextAccessor _context;
-        public DataContext(DbContextOptions<DataContext> options, IHttpContextAccessor context) : base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor context) : base(options)
         {
             _context = context;
         }

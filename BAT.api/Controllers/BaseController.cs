@@ -1,7 +1,8 @@
 ﻿namespace WebApi.Controllers;
 
+using BAT.api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.Entities;
+
 
 [Controller]
 public abstract class BaseController : ControllerBase

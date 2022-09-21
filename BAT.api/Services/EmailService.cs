@@ -1,4 +1,4 @@
-namespace WebApi.Services;
+namespace BAT.api.Services;
 
 using BAT.api.Helpers;
 using MailKit.Net.Smtp;
@@ -24,24 +24,24 @@ public class EmailService : IEmailService
         _appSettings = appSettings.Value;
     }
 
-   /* public void Send(string to, string subject, string html, string from = null)
-    {
-        // create message
-        var email = new MimeMessage();
-        email.From.Add(MailboxAddress.Parse(from ?? _appSettings.EmailFrom));
-        email.To.Add(MailboxAddress.Parse(to));
-        email.Subject = subject;
-        email.Body = new TextPart(TextFormat.Html) { Text = html };
+    /* public void Send(string to, string subject, string html, string from = null)
+     {
+         // create message
+         var email = new MimeMessage();
+         email.From.Add(MailboxAddress.Parse(from ?? _appSettings.EmailFrom));
+         email.To.Add(MailboxAddress.Parse(to));
+         email.Subject = subject;
+         email.Body = new TextPart(TextFormat.Html) { Text = html };
 
-        // send email
-        using var smtp = new SmtpClient();
-        smtp.Connect(_appSettings.SmtpHost, _appSettings.SmtpPort, SecureSocketOptions.StartTls);
-        smtp.Authenticate(_appSettings.SmtpUser, _appSettings.SmtpPass);
-        smtp.Send(email);
-        smtp.Disconnect(true);
+         // send email
+         using var smtp = new SmtpClient();
+         smtp.Connect(_appSettings.SmtpHost, _appSettings.SmtpPort, SecureSocketOptions.StartTls);
+         smtp.Authenticate(_appSettings.SmtpUser, _appSettings.SmtpPass);
+         smtp.Send(email);
+         smtp.Disconnect(true);
 
 
-    }*/
+     }*/
 
     public void Send(string to, string subject, string html, string from = null)
     {
@@ -50,16 +50,16 @@ public class EmailService : IEmailService
         var fromx = new EmailAddress("Iyenova2@gmail.com", "Iyenova");
         List<EmailAddress> recipients = new List<EmailAddress>();
 
-      
-            recipients.Add(new EmailAddress { Email = to });
-        
+
+        recipients.Add(new EmailAddress { Email = to });
+
 
 
         var bodyMsg = MailHelper.CreateSingleEmailToMultipleRecipients(fromx, recipients, subject, html, html);
 
-       var result =  client.SendEmailAsync(bodyMsg).Result;
+        var result = client.SendEmailAsync(bodyMsg).Result;
         Console.WriteLine(result);
-        
+
     }
 
 }

@@ -1,6 +1,7 @@
 namespace BAT.api.Helpers;
 
 using BAT.api.Helpers;
+using BAT.api.Models.Response;
 using System.Net;
 using System.Text.Json;
 
@@ -43,7 +44,7 @@ public class ErrorHandlerMiddleware
                     break;
             }
 
-            var result = JsonSerializer.Serialize(new { message = error?.Message });
+            var result = JsonSerializer.Serialize(new { nessage = error?.Message, succeeded = false, data = ""});
             await response.WriteAsync(result);
         }
     }
