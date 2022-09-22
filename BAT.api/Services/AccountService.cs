@@ -204,6 +204,13 @@ public class AccountService : IAccountService
 
     public Response<int> Register(RegisterRequest model, string origin)
     {
+        //check if this Admin has been provisoned before they can register
+        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
+        if(hasAdminBeenProvisoned == null)
+        {
+            throw new KeyNotFoundException("Your profile has not been provisoned by an Admin.");
+        }
+
         // check if user already exist using first name , last name and password
 
         var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
@@ -229,8 +236,11 @@ public class AccountService : IAccountService
         account.SecretAnswer = secretHash;
         account.SecretQuestionExpire = DateTime.UtcNow.AddDays(7);
 
+        hasAdminBeenProvisoned.HasCompletedRegistration = true;
+
         // save account
         _context.Accounts.Add(account);
+        _context.ProvisionedAdmins.Update(hasAdminBeenProvisoned);
         _context.SaveChanges();
 
         // send email

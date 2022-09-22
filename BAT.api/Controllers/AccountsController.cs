@@ -33,12 +33,14 @@ public class AccountsController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost("Register")]
+    [HttpPost("RegisterAdmin")]
     public IActionResult Register(RegisterRequest model)
     {
         var response = _accountService.Register(model, Request.Headers["origin"]);
         return Ok(response);
     }
+
+
 
 
     [AllowAnonymous]

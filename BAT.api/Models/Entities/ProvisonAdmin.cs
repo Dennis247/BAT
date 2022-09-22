@@ -10,6 +10,8 @@ namespace BAT.api.Models.Entities
         public DateTime Requested { get; set; }
 
         public int RequesterId { get; set; }
+
+        public bool HasCompletedRegistration { get; set; }
     
     }
 }
