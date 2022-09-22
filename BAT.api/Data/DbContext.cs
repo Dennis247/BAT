@@ -21,6 +21,9 @@ namespace BAT.api.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Audit> AuditLogs { get; set; }
 
+        public DbSet<ProvisionedAdmin> ProvisionedAdmins { get; set; }
+
+
         public virtual async Task<int> SaveChangesAsync(string userId = null)
         {
             OnBeforeSaveChanges();

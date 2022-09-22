@@ -14,6 +14,8 @@ public class AuthenticateResponse
     public DateTime Created { get; set; }
     public DateTime? Updated { get; set; }
     public bool IsVerified { get; set; }
+    public string SecretAnswer { get; set; }
+    public bool HasSecretAnswerExpired { get; set; }
     public string JwtToken { get; set; }
 
     [JsonIgnore] // refresh token is returned in http only cookie

@@ -21,6 +21,7 @@ public interface IAccountService
 {
     Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress);
     Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
+     Response<string> ResetSecretAnswer(ResetSecretAnswer model);
     Response<IEnumerable<AccountResponse>> GetAll();
     Response<AccountResponse> GetById(int id);
     Response<AuthenticateResponse> RefreshToken(string token, string ipAddress);
@@ -28,6 +29,11 @@ public interface IAccountService
     Response<string> ResetPassword(ResetPasswordRequest model);
     Response<bool> RevokeToken(string token, string ipAddress);
     Response<string> VerifyEmail(string token);
+
+    Response<string> ProvisionAdmin(ProvisonAdminRequest model);
+
+
+    
 }
 
 public class AccountService : IAccountService
@@ -37,22 +43,23 @@ public class AccountService : IAccountService
     private readonly IMapper _mapper;
     private readonly AppSettings _appSettings;
     private readonly IEmailService _emailService;
-    private readonly IDataProtector _protector;
-
     private EncryptionHelper _encryptionHelper;
+    private IHttpContextAccessor _httpContextAccessor;
 
     public AccountService(
         ApplicationDbContext context,
         IJwtUtils jwtUtils,
         IMapper mapper,
         IOptions<AppSettings> appSettings,
-        IEmailService emailService)
+        IEmailService emailService,
+         IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _jwtUtils = jwtUtils;
         _mapper = mapper;
         _appSettings = appSettings.Value;
         _emailService = emailService;
+        _httpContextAccessor = httpContextAccessor;
         _encryptionHelper = new EncryptionHelper(_appSettings.Securitykey,_appSettings.SecurityIv);
     }
 
@@ -65,7 +72,21 @@ public class AccountService : IAccountService
 
         // validate
         if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash) || (encryptedSecretAnswer != account.SecretAnswer))
-            throw new AppException("Email or password is incorrect");
+            throw new AppException("Invalid login credentials");
+
+        var response = _mapper.Map<AuthenticateResponse>(account);
+        response.SecretAnswer = _encryptionHelper.AESDecrypt(account.SecretAnswer);
+
+        if (response.HasSecretAnswerExpired)
+        {
+            return new Response<AuthenticateResponse>
+            {
+                Succeeded = false,
+                Message = "Secret answer has expired, please update ",
+                Data = response,
+            };
+        }
+
 
         // authentication successful so generate jwt and refresh tokens
         var jwtToken = _jwtUtils.GenerateJwtToken(account);
@@ -79,13 +100,46 @@ public class AccountService : IAccountService
         _context.Update(account);
         _context.SaveChanges();
 
-        var response = _mapper.Map<AuthenticateResponse>(account);
+    
         response.JwtToken = jwtToken;
         response.RefreshToken = refreshToken.Token;
+      //  response.HasSecretAnswerExpired = account.HasSecretQUestionExpired;
         return new Response<AuthenticateResponse>
         {
             Data = response,
             Message = "Login Sucessful",
+            Succeeded = true
+        };
+    }
+
+    public Response<string> ResetSecretAnswer(ResetSecretAnswer model)
+    {
+        var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.OldSecretAnswer);
+
+        var account = _context.Accounts.SingleOrDefault(x => x.SecretAnswer == encryptedSecretAnswer && x.Id == model.UserId);
+
+        // validate
+        if (account == null)
+            throw new AppException("Secret Answer is not valid");
+
+        //check if new secret answer is the same as old secret answer
+
+        var newSecretANswer = _encryptionHelper.AESEncrypt(model.NewSecretAnswer);
+
+        if (encryptedSecretAnswer == newSecretANswer)
+            throw new AppException("New secret answer cannot be the same as old secret answer");
+
+        account.SecretAnswer = newSecretANswer;
+        account.SecretQuestionExpire = DateTime.UtcNow.AddDays(7);
+
+        // save changes to db
+        _context.Update(account);
+        _context.SaveChanges();
+
+        return new Response<string>
+        {
+            Data = model.NewSecretAnswer,
+            Message = "Secret Answer has been changed sucessfully\nYou can now login",
             Succeeded = true
         };
     }
@@ -173,6 +227,7 @@ public class AccountService : IAccountService
         // hash password & sceurity answer
         account.PasswordHash = SecureTextHasher.Hash(model.Password);
         account.SecretAnswer = secretHash;
+        account.SecretQuestionExpire = DateTime.UtcNow.AddDays(7);
 
         // save account
         _context.Accounts.Add(account);
@@ -263,6 +318,70 @@ public class AccountService : IAccountService
             Message = "Password Reset Sucessful,\nYou can now login",
             Succeeded = true
         };
+    }
+
+    public Response<string> ProvisionAdmin(ProvisonAdminRequest model)
+    {
+        //check if admin has been provisioned already
+        ProvisionedAdmin isAlreadProvisioned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
+        if(isAlreadProvisioned != null)
+        {
+            //resend the mail invite
+            return new Response<string>
+            {
+                Data = null,
+                Message = "Admin has already been provisoned & mail invite sent again.",
+                Succeeded = false
+
+            };
+        }
+
+        //check if this admin already exist
+        var isExistingAdmin = _context.Accounts.FirstOrDefault(x => x.Email == model.Email);
+        if (isExistingAdmin != null)
+        {
+            //resend the mail invite
+            return new Response<string>
+            {
+                Data = null,
+                Message = "Admin already exist.",
+                Succeeded = false
+
+            };
+        }
+
+
+        //validate Admin userId
+
+        var admin = _context.Accounts.FirstOrDefault(x => x.Id == model.AdminId && x.Role == Role.Admin);
+        if (admin == null)
+        {
+            throw new UnAuthorizedException("User not authorized to provision admin");
+        }
+
+
+        //go ahead and provison the admin
+
+        var pAdmin = new ProvisionedAdmin
+        {
+            Email = model.Email,
+            Requested = DateTime.UtcNow,
+            RequesterId = admin.Id,
+
+        };
+
+        _context.ProvisionedAdmins.Add(pAdmin);
+        _context.SaveChanges();
+
+        //send email to the admin that has been provisoned with website Url
+
+        return new Response<string>
+        {
+            Succeeded = true,
+            Message = "Admin Provisoned Sucessful",
+            Data = ""
+        };
+
     }
 
     public Response<IEnumerable<AccountResponse>> GetAll()
@@ -447,4 +566,6 @@ public class AccountService : IAccountService
                         {message}"
         );
     }
+
+
 }

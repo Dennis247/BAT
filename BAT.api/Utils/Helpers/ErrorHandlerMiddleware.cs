@@ -37,6 +37,12 @@ public class ErrorHandlerMiddleware
                     // not found error
                     response.StatusCode = (int)HttpStatusCode.NotFound;
                     break;
+
+                case UnAuthorizedException e:
+                    // UnAuthorized Exception
+                    response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    break;
+
                 default:
                     // unhandled error
                     _logger.LogError(error, error.Message);
@@ -44,7 +50,7 @@ public class ErrorHandlerMiddleware
                     break;
             }
 
-            var result = JsonSerializer.Serialize(new { nessage = error?.Message, succeeded = false, data = ""});
+            var result = JsonSerializer.Serialize(new { message = error?.Message, succeeded = false, data = ""});
             await response.WriteAsync(result);
         }
     }

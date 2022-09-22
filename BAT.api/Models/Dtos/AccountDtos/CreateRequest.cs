@@ -31,3 +31,14 @@ public class CreateRequest
     [Compare("Password")]
     public string ConfirmPassword { get; set; }
 }
+
+
+public class ProvisonAdminRequest
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; }
+
+    [Required]
+    public int AdminId { get; set; }
+}

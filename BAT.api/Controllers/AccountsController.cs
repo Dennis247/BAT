@@ -22,7 +22,7 @@ public class AccountsController : BaseController
     }
 
     [AllowAnonymous]
-    [HttpPost("authenticate")]
+    [HttpPost("Authenticate")]
     public IActionResult Authenticate(AuthenticateRequest model)
     {
         var response = _accountService.Authenticate(model, ipAddress());
@@ -30,8 +30,10 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
+
+
     [AllowAnonymous]
-    [HttpPost("register")]
+    [HttpPost("Register")]
     public IActionResult Register(RegisterRequest model)
     {
         var response = _accountService.Register(model, Request.Headers["origin"]);
@@ -40,7 +42,7 @@ public class AccountsController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost("forgot-password")]
+    [HttpPost("ForgotPassword")]
     public IActionResult ForgotPassword(ForgotPasswordRequest model)
     {
         var response = _accountService.ForgotPassword(model, Request.Headers["origin"]);
@@ -51,7 +53,7 @@ public class AccountsController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost("reset-password")]
+    [HttpPost("ResetPassword")]
     public IActionResult ResetPassword(ResetPasswordRequest model)
     {
         var response = _accountService.ResetPassword(model);
@@ -59,10 +61,28 @@ public class AccountsController : BaseController
     }
 
 
+    [AllowAnonymous]
+    [HttpPost("ResetSecretAnswer")]
+    public IActionResult ResetSecretAnswer(ResetSecretAnswer model)
+    {
+       var response = _accountService.ResetSecretAnswer(model);
+       return Ok(response);
+    }
 
 
     [AllowAnonymous]
-    [HttpPost("refresh-token")]
+    [HttpPost("ProvisionAdmin")]
+    public IActionResult ProvisionAdmin(ProvisonAdminRequest model)
+    {
+        var response = _accountService.ProvisionAdmin(model);
+        return Ok(response);
+    }
+
+
+    
+
+    [AllowAnonymous]
+    [HttpPost("RefreshToken")]
     public IActionResult RefreshToken()
     {
         var refreshToken = Request.Cookies["refreshToken"];
@@ -71,7 +91,7 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
-    [HttpPost("revoke-token")]
+    [HttpPost("RevokeToken")]
     public IActionResult RevokeToken(RevokeTokenRequest model)
     {
         // accept token from request body or cookie
@@ -90,11 +110,11 @@ public class AccountsController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost("verify-email")]
+    [HttpPost("VerifyEmail")]
     public IActionResult VerifyEmail(VerifyEmailRequest model)
     {
-        _accountService.VerifyEmail(model.Token);
-        return Ok(new { message = "Verification successful, you can now login" });
+        var response =   _accountService.VerifyEmail(model.Token);
+        return Ok(response);
     }
 
  
