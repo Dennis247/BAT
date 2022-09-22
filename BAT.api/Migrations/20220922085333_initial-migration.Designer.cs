@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BAT.api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20220921200503_init")]
-    partial class init
+    [Migration("20220922085333_initial-migration")]
+    partial class initialmigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -55,7 +55,6 @@ namespace BAT.api.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ResetToken")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ResetTokenExpires")
@@ -65,10 +64,6 @@ namespace BAT.api.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SecretAnswer")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -186,18 +181,15 @@ namespace BAT.api.Migrations
                                 .HasColumnType("datetime2");
 
                             b1.Property<string>("ReasonRevoked")
-                                .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
                             b1.Property<string>("ReplacedByToken")
-                                .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
                             b1.Property<DateTime?>("Revoked")
                                 .HasColumnType("datetime2");
 
                             b1.Property<string>("RevokedByIp")
-                                .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
                             b1.Property<string>("Token")

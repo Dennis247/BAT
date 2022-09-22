@@ -11,7 +11,6 @@ public class ForgotPasswordRequest
 
 
     [Required]
-    [EmailAddress]
     public string SecretAnswer { get; set; }
 }
 

@@ -84,7 +84,6 @@ builder.Services.AddSingleton<IUriService>(o =>
 });
 
 
-
 var app = builder.Build();
 
 // migrate any database changes on startup (includes initial db creation)

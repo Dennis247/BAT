@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BAT.api.Migrations
 {
-    public partial class init : Migration
+    public partial class initialmigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -15,7 +15,6 @@ namespace BAT.api.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -24,7 +23,7 @@ namespace BAT.api.Migrations
                     Role = table.Column<int>(type: "int", nullable: false),
                     VerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Verified = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ResetTokenExpires = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PasswordReset = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Created = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -75,9 +74,9 @@ namespace BAT.api.Migrations
                     Created = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedByIp = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Revoked = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RevokedByIp = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ReplacedByToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ReasonRevoked = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    RevokedByIp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReasonRevoked = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {

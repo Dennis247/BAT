@@ -8,7 +8,8 @@ using BAT.api.Models.Dtos.AccountDtos;
 using BAT.api.Models.Entities;
 using BAT.api.Models.enums;
 using BAT.api.Models.Response;
-using BCrypt.Net;
+using BAT.api.Utils.Helpers;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -36,6 +37,9 @@ public class AccountService : IAccountService
     private readonly IMapper _mapper;
     private readonly AppSettings _appSettings;
     private readonly IEmailService _emailService;
+    private readonly IDataProtector _protector;
+
+    private EncryptionHelper _encryptionHelper;
 
     public AccountService(
         ApplicationDbContext context,
@@ -49,6 +53,7 @@ public class AccountService : IAccountService
         _mapper = mapper;
         _appSettings = appSettings.Value;
         _emailService = emailService;
+        _encryptionHelper = new EncryptionHelper(_appSettings.Securitykey,_appSettings.SecurityIv);
     }
 
     public Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress)
@@ -56,8 +61,10 @@ public class AccountService : IAccountService
         var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
         && x.LastName.ToLower() == model.LastName.ToLower());
 
+        var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
         // validate
-        if (account == null || !BCrypt.Verify(model.Password, account.PasswordHash) || !BCrypt.Verify(model.SecretAnswer, account.SecretAnswer))
+        if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash) || (encryptedSecretAnswer != account.SecretAnswer))
             throw new AppException("Email or password is incorrect");
 
         // authentication successful so generate jwt and refresh tokens
@@ -145,12 +152,9 @@ public class AccountService : IAccountService
     {
         // check if user already exist using first name , last name and password
 
-        var secretHash = BCrypt.HashPassword(model.SecretAnswer);
+        var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
 
-        if (_context.Accounts.Any(x =>
-        x.FirstName.ToLower() == model.FirstName.ToLower()
-         && x.LastName.ToLower() == model.LastName.ToLower() && (x.SecretAnswer == secretHash)
-   ))
+        if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
         {
             throw new AppException("Your information matches an existing user,\nplease fill in the correct information or sign in");
         }
@@ -167,8 +171,8 @@ public class AccountService : IAccountService
         account.VerificationToken = generateVerificationToken();
 
         // hash password & sceurity answer
-        account.PasswordHash = BCrypt.HashPassword(model.Password);
-        account.SecretAnswer = BCrypt.HashPassword(model.SecretAnswer);
+        account.PasswordHash = SecureTextHasher.Hash(model.Password);
+        account.SecretAnswer = secretHash;
 
         // save account
         _context.Accounts.Add(account);
@@ -210,8 +214,8 @@ public class AccountService : IAccountService
 
     public Response<string> ForgotPassword(ForgotPasswordRequest model, string origin)
     {
-        var secretAnswerHash = BCrypt.HashPassword(model.SecretAnswer);
-        var account = _context.Accounts.SingleOrDefault(x => BCrypt.HashPassword(x.SecretAnswer) == BCrypt.HashPassword(secretAnswerHash));
+        var secretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+        var account = _context.Accounts.SingleOrDefault(x => x.SecretAnswer == secretAnswer);
 
         // always return ok response to prevent email enumeration
         if (account == null)
@@ -234,8 +238,8 @@ public class AccountService : IAccountService
 
         return new Response<string>
         {
-            Data = null,
-            Message = "Reset Password Email Sent Sucessfully.",
+            Data = account.ResetToken,
+            Message = $"We have set the reset token to {account.Email}\nPlease follow the instructions to reset your password",
             Succeeded = true
         };
     }
@@ -245,7 +249,7 @@ public class AccountService : IAccountService
         var account = getAccountByResetToken(model.Token);
 
         // update password and remove reset token
-        account.PasswordHash = BCrypt.HashPassword(model.Password);
+        account.PasswordHash = SecureTextHasher.Hash(model.Password);
         account.PasswordReset = DateTime.UtcNow;
         account.ResetToken = null;
         account.ResetTokenExpires = null;
@@ -256,7 +260,7 @@ public class AccountService : IAccountService
         return new Response<string>
         {
             Data = null,
-            Message = "Reste Password Sucessful,\nYou can now login",
+            Message = "Password Reset Sucessful,\nYou can now login",
             Succeeded = true
         };
     }
@@ -344,9 +348,9 @@ public class AccountService : IAccountService
     private string generateVerificationToken()
     {
         // token is a cryptographically strong random sequence of values
-       // var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+       var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
 
-        var token = new Random().Next(0,999999).ToString();
+      //  var token = new Random().Next(0,999999).ToString();
 
         // ensure token is unique by checking against db
         var tokenIsUnique = !_context.Accounts.Any(x => x.VerificationToken == token);
@@ -426,8 +430,8 @@ public class AccountService : IAccountService
         string message;
         if (!string.IsNullOrEmpty(origin))
         {
-            var resetUrl = $"{origin}/account/reset-password?token={account.ResetToken}";
-            message = $@"<p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
+            var resetUrl = $"{origin}/account/reset-password?userId={account.Id}&token={account.ResetToken}";
+            message = $@"<p>Please click the below link to reset your password, the link will be valid for 10 minutes:</p>
                             <p><a href=""{resetUrl}"">{resetUrl}</a></p>";
         }
         else
