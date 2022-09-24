@@ -20,6 +20,7 @@ using System.Text;
 public interface IAccountService
 {
     Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress);
+    Response<string> LogOut(int AdminId);
     Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
      Response<string> ResetSecretAnswer(ResetSecretAnswer model);
     Response<IEnumerable<AccountResponse>> GetAll();
@@ -29,8 +30,7 @@ public interface IAccountService
     Response<string> ResetPassword(ResetPasswordRequest model);
     Response<bool> RevokeToken(string token, string ipAddress);
     Response<string> VerifyEmail(string token);
-
-    Response<string> ProvisionAdmin(ProvisonAdminRequest model);
+    Response<string> ProvisionAdmin(ProvisonAdminRequest model,int  AdminId);
 
 
     
@@ -65,33 +65,28 @@ public class AccountService : IAccountService
 
     public Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress)
     {
-        var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
-        && x.LastName.ToLower() == model.LastName.ToLower());
 
         var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
 
+        var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
+        && x.LastName.ToLower() == model.LastName.ToLower() && x.SecretAnswer == encryptedSecretAnswer);
+
+        
+
         // validate
-        if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash) || (encryptedSecretAnswer != account.SecretAnswer))
+        if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash))
             throw new AppException("Invalid login credentials");
 
         var response = _mapper.Map<AuthenticateResponse>(account);
         response.SecretAnswer = _encryptionHelper.AESDecrypt(account.SecretAnswer);
-
-        if (response.HasSecretAnswerExpired)
-        {
-            return new Response<AuthenticateResponse>
-            {
-                Succeeded = false,
-                Message = "Secret answer has expired, please update ",
-                Data = response,
-            };
-        }
 
 
         // authentication successful so generate jwt and refresh tokens
         var jwtToken = _jwtUtils.GenerateJwtToken(account);
         var refreshToken = _jwtUtils.GenerateRefreshToken(ipAddress);
         account.RefreshTokens.Add(refreshToken);
+        account.IsOnline = true;
+        account.LastTimeLoggedIn = DateTime.UtcNow;
 
         // remove old refresh tokens from account
         removeOldRefreshTokens(account);
@@ -130,7 +125,6 @@ public class AccountService : IAccountService
             throw new AppException("New secret answer cannot be the same as old secret answer");
 
         account.SecretAnswer = newSecretANswer;
-        account.SecretQuestionExpire = DateTime.UtcNow.AddDays(7);
 
         // save changes to db
         _context.Update(account);
@@ -204,6 +198,25 @@ public class AccountService : IAccountService
 
     public Response<int> Register(RegisterRequest model, string origin)
     {
+
+        //check if it has reached maximum admin count
+        if (_context.Accounts.Count() == 5)
+        {
+            return new Response<int>
+            {
+                Data = 0,
+                Message = "Maximum number of Admin has been Registered",
+                Succeeded = false
+            };
+        }
+
+        //check if password is string
+        var isPasswordStrong = SecureTextHasher.IsPasswordStrong(model.Password);
+        if (!isPasswordStrong)
+        {
+            throw new AppException("Password must have minimum of 8 characters in lenght/nAt least one upper case\nAt least one lower case\nAt least one digit\nAt least one special character");
+        }
+
         //check if this Admin has been provisoned before they can register
         var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
         if(hasAdminBeenProvisoned == null)
@@ -227,14 +240,14 @@ public class AccountService : IAccountService
 
         // first registered account is an admin
         var isFirstAccount = _context.Accounts.Count() == 0;
-        account.Role = isFirstAccount ? Role.Admin : Role.User;
+        account.Role = Role.Admin;
         account.Created = DateTime.UtcNow;
         account.VerificationToken = generateVerificationToken();
 
         // hash password & sceurity answer
         account.PasswordHash = SecureTextHasher.Hash(model.Password);
         account.SecretAnswer = secretHash;
-        account.SecretQuestionExpire = DateTime.UtcNow.AddDays(7);
+
 
         hasAdminBeenProvisoned.HasCompletedRegistration = true;
 
@@ -242,6 +255,21 @@ public class AccountService : IAccountService
         _context.Accounts.Add(account);
         _context.ProvisionedAdmins.Update(hasAdminBeenProvisoned);
         _context.SaveChanges();
+
+
+        //add user to team
+
+        AdminTeam adminTeam = new AdminTeam
+        {
+            AddedBy = hasAdminBeenProvisoned.RequesterId,
+            Created = DateTime.UtcNow,
+            AdminId = account.Id,
+            TeamId = hasAdminBeenProvisoned.TeamId,
+           
+        };
+
+        _context.AdminTeams.Add(adminTeam);
+        _context.SaveChanges(true);
 
         // send email
         sendVerificationEmail(account, origin);
@@ -330,7 +358,7 @@ public class AccountService : IAccountService
         };
     }
 
-    public Response<string> ProvisionAdmin(ProvisonAdminRequest model)
+    public Response<string> ProvisionAdmin(ProvisonAdminRequest model, int AdminId)
     {
         //check if admin has been provisioned already
         ProvisionedAdmin isAlreadProvisioned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
@@ -361,13 +389,6 @@ public class AccountService : IAccountService
         }
 
 
-        //validate Admin userId
-
-        var admin = _context.Accounts.FirstOrDefault(x => x.Id == model.AdminId && x.Role == Role.Admin);
-        if (admin == null)
-        {
-            throw new UnAuthorizedException("User not authorized to provision admin");
-        }
 
 
         //go ahead and provison the admin
@@ -376,8 +397,8 @@ public class AccountService : IAccountService
         {
             Email = model.Email,
             Requested = DateTime.UtcNow,
-            RequesterId = admin.Id,
-
+            RequesterId = AdminId,
+            TeamId = model.TeamId
         };
 
         _context.ProvisionedAdmins.Add(pAdmin);
@@ -418,17 +439,33 @@ public class AccountService : IAccountService
         };
     }
 
+    public Response<string> LogOut(int AdminId)
+    {
+        var account = _context.Accounts.FirstOrDefault(x => x.Id == AdminId);
+        if(account != null)
+        {
+            account.LoggedOutTime = DateTime.UtcNow;
+            account.IsOnline = false;
+        }
+        return new Response<string>
+        {
+            Data = "",
+            Message = "Logged Out Sucessful",
+            Succeeded = true
+        };
+    }
+
 
 
 
     // helper methods
 
- 
+
 
     private Account getAccount(int id)
     {
         var account = _context.Accounts.Find(id);
-        if (account == null) throw new KeyNotFoundException("Account not found");
+        if (account == null) throw new KeyNotFoundException("Admin not found");
         return account;
     }
 

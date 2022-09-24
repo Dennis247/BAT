@@ -1,6 +1,4 @@
-﻿using WebApi.Controllers;
-
-namespace BAT.api.Controllers;
+﻿namespace BAT.api.Controllers;
 
 using BAT.api.Authorization;
 using BAT.api.Models.Dtos.AccountDtos;
@@ -27,6 +25,15 @@ public class AccountsController : BaseController
     {
         var response = _accountService.Authenticate(model, ipAddress());
         setTokenCookie(response.Data.RefreshToken);
+        return Ok(response);
+    }
+
+
+    [AllowAnonymous]
+    [HttpPost("LogOut")]
+    public IActionResult LogOut()
+    {
+        var response = _accountService.LogOut(Account.Id);
         return Ok(response);
     }
 
@@ -72,11 +79,11 @@ public class AccountsController : BaseController
     }
 
 
-    [AllowAnonymous]
+    [Authorize(Role.SuperAdmin)]
     [HttpPost("ProvisionAdmin")]
     public IActionResult ProvisionAdmin(ProvisonAdminRequest model)
     {
-        var response = _accountService.ProvisionAdmin(model);
+        var response = _accountService.ProvisionAdmin(model,Account.Id);
         return Ok(response);
     }
 

@@ -16,3 +16,5 @@ public class AuthenticateRequest
     [Required]
     public string Password { get; set; }
 }
+
+

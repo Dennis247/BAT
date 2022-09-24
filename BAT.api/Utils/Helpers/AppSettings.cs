@@ -9,4 +9,5 @@ public class AppSettings
     public int RefreshTokenTTL { get; set; }
     public string SecurityIv { get; set; }
     public string Securitykey { get; set; }
+    public int MaximumAdminCount { get; set; }
 }

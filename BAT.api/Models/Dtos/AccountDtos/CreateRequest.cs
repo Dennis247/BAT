@@ -38,7 +38,7 @@ public class ProvisonAdminRequest
     [Required]
     [EmailAddress]
     public string Email { get; set; }
-
     [Required]
-    public int AdminId { get; set; }
+    public int TeamId { get; set; }
+
 }

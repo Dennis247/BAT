@@ -3,6 +3,7 @@
 using BAT.api.Authorization;
 using BAT.api.Models.Entities;
 using BAT.api.Models.enums;
+using BAT.api.Models.Response;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -28,7 +29,13 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
         if (account == null || (_roles.Any() && !_roles.Contains(account.Role)))
         {
             // not logged in or role not authorized
-            context.Result = new JsonResult(new { message = "Unauthorized" }) { StatusCode = StatusCodes.Status401Unauthorized };
+            context.Result = new JsonResult(new Response<string>
+            {
+                Message = "Unauthorized",
+                Data = null,
+                Succeeded = false
+            })
+            { StatusCode = StatusCodes.Status401Unauthorized };
         }
     }
 }

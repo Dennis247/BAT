@@ -1,4 +1,4 @@
-﻿namespace WebApi.Controllers;
+﻿namespace BAT.api.Controllers;
 
 using BAT.api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;

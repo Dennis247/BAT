@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace BAT.api.Utils.Helpers
@@ -113,6 +114,15 @@ namespace BAT.api.Utils.Helpers
             }
 
         }
+
+
+       public static bool IsPasswordStrong(string passWord)
+        {
+            Regex validateGuidRegex = new Regex("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$");
+            return validateGuidRegex.IsMatch(passWord);
+        }
+        
+
     }
 
 }

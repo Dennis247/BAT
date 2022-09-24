@@ -22,9 +22,21 @@ namespace BAT.api.Data
         public DbSet<Audit> AuditLogs { get; set; }
 
         public DbSet<ProvisionedAdmin> ProvisionedAdmins { get; set; }
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
 
+        public DbSet<TeamPermission> TeamPermissions { get; set; }
+        public DbSet<AdminTeam> AdminTeams { get; set; }
 
-        public virtual async Task<int> SaveChangesAsync(string userId = null)
+        public DbSet<Candidate> Candidates { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            new DbInitializer(modelBuilder).Seed();
+        }
+
+        public virtual async Task<int> SaveChangesAsync()
         {
             OnBeforeSaveChanges();
             var result = await base.SaveChangesAsync();

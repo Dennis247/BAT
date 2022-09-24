@@ -8,6 +8,7 @@ namespace BAT.api.Models.Entities
         [EmailAddress]
         public string Email { get; set; }
         public DateTime Requested { get; set; }
+        public int TeamId { get; set; }
 
         public int RequesterId { get; set; }
 

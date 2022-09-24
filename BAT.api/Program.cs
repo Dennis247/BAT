@@ -21,6 +21,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IAccountService, AccountService>();
 builder.Services.AddTransient<IJwtUtils, JwtUtils>();
 builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddTransient<ITeamServices, TeamServices>();
+builder.Services.AddTransient<IPermissionService, PermissionService>();
+builder.Services.AddTransient<ICandidateService, CandidateService>();
+
 
 
 // configure strongly typed settings object

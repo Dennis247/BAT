@@ -11,7 +11,6 @@ public class Account
     [EmailAddress]
     public string Email { get; set; }
     public string SecretAnswer { get; set; }
-    public DateTime? SecretQuestionExpire { get; set; }
     public string PasswordHash { get; set; }
     public Role Role { get; set; }
     public string VerificationToken { get; set; }
@@ -24,13 +23,13 @@ public class Account
     public DateTime? Updated { get; set; }
     public List<RefreshToken> RefreshTokens { get; set; }
 
+    public bool IsOnline { get; set; }
+    public DateTime LastTimeLoggedIn { get; set; }
+    public DateTime LoggedOutTime { get; set; }
+
     public bool OwnsToken(string token)
     {
         return RefreshTokens?.Find(x => x.Token == token) != null;
     }
 
-    public  bool HasSecretQUestionExpired { get
-        {
-            return DateTime.Now.CompareTo(SecretQuestionExpire) > 0;
-        } }
 }

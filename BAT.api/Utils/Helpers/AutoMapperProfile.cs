@@ -1,6 +1,8 @@
 namespace BAT.api.Helpers;
 using AutoMapper;
 using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Dtos.Candidate;
+using BAT.api.Models.Dtos.PermissionDtos;
 using BAT.api.Models.Entities;
 
 public class AutoMapperProfile : Profile
@@ -30,5 +32,14 @@ public class AutoMapperProfile : Profile
                     return true;
                 }
             ));
+
+
+        CreateMap<CandidateDto, Candidate>();
+        CreateMap<Candidate, CandidateDto>();
+        CreateMap<AddCandidateDto, Candidate>();
+
+        CreateMap<PermissionDto, Permission>();
+
+        
     }
 }
