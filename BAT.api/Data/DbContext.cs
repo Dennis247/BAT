@@ -29,6 +29,7 @@ namespace BAT.api.Data
         public DbSet<AdminTeam> AdminTeams { get; set; }
 
         public DbSet<Candidate> Candidates { get; set; }
+        public DbSet<UserActivation> UserActivations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

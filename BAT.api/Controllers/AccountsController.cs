@@ -79,7 +79,7 @@ public class AccountsController : BaseController
     }
 
 
-    [Authorize(Role.SuperAdmin)]
+
     [HttpPost("ProvisionAdmin")]
     public IActionResult ProvisionAdmin(ProvisonAdminRequest model)
     {

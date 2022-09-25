@@ -1,5 +1,6 @@
 ﻿using BAT.api.Models.Dtos.Candidate;
 using BAT.api.Services;
+using BAT.api.Utils.Filters;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BAT.api.Controllers
@@ -16,15 +17,16 @@ namespace BAT.api.Controllers
             _candidateService = candidateService;
         }
 
-        [HttpPost("GetAllCandidates")]
-        public IActionResult GetAllCandidates()
+        [HttpGet("GetAllCandidates")]
+        public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter)
         {
-            var response = _candidateService.GetAllCandidates();
+            var route = Request.Path.Value;
+            var response = _candidateService.GetAllCandidates(filter,route);
             return Ok(response);
         }
 
         [HttpPost("AddCandidate")]
-        public IActionResult AddCandidate(CandidateDto candidateDto)
+        public IActionResult AddCandidate(AddCandidateDto candidateDto)
         {
             var response = _candidateService.AddCandidate(candidateDto, Account.Id);
             return Ok(response);

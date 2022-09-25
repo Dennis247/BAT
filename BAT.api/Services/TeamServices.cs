@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using BAT.api.Data;
 using BAT.api.Helpers;
+using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Dtos.PermissionDtos;
 using BAT.api.Models.Dtos.TeamDtos;
 using BAT.api.Models.Entities;
 using BAT.api.Models.Response;
@@ -12,9 +14,11 @@ namespace BAT.api.Services
     {
         Response<string> AddAdminToTeam(AddAdminToTeam addAdminToTeam,int AddedBy);
         public Response<int> AddTeam(AddTeam addTeam, int AdminId);
-        Response<List<Team>> GetAllTeams();
+        Response<List<TeamDetails>> GetAllTeams();
         Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<string> UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission, int AdminId);
+
+        Response<TeamWithUserAndPriviledges> GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId);
     }
 
 
@@ -45,6 +49,14 @@ namespace BAT.api.Services
             if (existingTeam == null)
                 throw new AppException("Team is not valid");
 
+            //check if admin already belongs to team
+            var adminExistinTeam = _context.AdminTeams.FirstOrDefault(x => x.AdminId == addAdminToTeam.AdminId
+            && x.TeamId == addAdminToTeam.TeamId);
+            if(adminExistinTeam != null)
+            {
+                throw new AppException("Admin has already been to this team");
+            }
+
             AdminTeam adminTeam = new AdminTeam
             {
                 AddedBy = AddedBy,
@@ -64,12 +76,13 @@ namespace BAT.api.Services
             };
         }
 
-        public Response<List<Team>> GetAllTeams()
+        public Response<List<TeamDetails>> GetAllTeams()
         {
             var allTeams = _context.Teams.ToList();
-            return new Response<List<Team>>
+            var teamToReturn = _mapper.Map<List<TeamDetails>>(allTeams);
+            return new Response<List<TeamDetails>>
             {
-                Data = allTeams,
+                Data = teamToReturn,
                 Succeeded = true,
                 Message = "sucessful"
 
@@ -104,7 +117,7 @@ namespace BAT.api.Services
         public Response<int> AddTeam(AddTeam addTeam, int AdminId)
         {
             var existingTeam = _context.Teams.SingleOrDefault(x => x.Name == addTeam.Name);
-            if (existingTeam == null)
+            if (existingTeam != null)
                 throw new AppException("Team already exist");
 
             var newTeam = new Team
@@ -194,7 +207,6 @@ namespace BAT.api.Services
             _context.TeamPermissions.AddRange(teamPermissions);
             _context.SaveChanges();
 
-            var teamToReturn = _mapper.Map<TeamDetails>(existingTeam);
 
             return new Response<string>
             {
@@ -205,6 +217,39 @@ namespace BAT.api.Services
             };
         }
 
-  
+        public Response<TeamWithUserAndPriviledges> GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId)
+        {
+            TeamWithUserAndPriviledges teamWithUserAndPriviledges = new TeamWithUserAndPriviledges();
+            var team = _context.Teams.FirstOrDefault(x => x.Id == teamDetailsId.TeamId);
+            if (team == null)
+                throw new AppException("Invalid Team Id");
+            var teamPermissions = _context.TeamPermissions.Where(x=>x.TeamId == teamDetailsId.TeamId).ToList();
+            var permissions = _context.Permissions.Where(pm => (teamPermissions.Select(x => x.PermissionId).Contains(pm.Id))).ToList();
+
+            var permissionToReturn = _mapper.Map<List<PermissionDto>>(permissions);
+
+
+
+            var teamAdmins = _context.AdminTeams.Where(x=>x.TeamId == teamDetailsId.TeamId).ToList();
+            var accounts = _context.Accounts.Where(ac => (teamAdmins.Select(x => x.AdminId).Contains(ac.Id))).ToList();
+            var accountsToReturn =_mapper.Map<List<AccountResponse>>(accounts);
+            teamWithUserAndPriviledges = new TeamWithUserAndPriviledges
+            {
+                Id = team.Id,
+                Created = team.Created,
+                CretaedBy = team.CretaedBy,
+                Name = team.Name,
+                IsDeleted = team.IsDeleted,
+                Accounts = accountsToReturn,
+                Priviledges = permissionToReturn
+            };
+
+            return new Response<TeamWithUserAndPriviledges>
+            {
+                Data = teamWithUserAndPriviledges,
+                Message = "sucessfull",
+                Succeeded = true
+            };
+        }
     }
 }

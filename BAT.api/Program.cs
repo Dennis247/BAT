@@ -24,6 +24,8 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<ITeamServices, TeamServices>();
 builder.Services.AddTransient<IPermissionService, PermissionService>();
 builder.Services.AddTransient<ICandidateService, CandidateService>();
+builder.Services.AddTransient<IUserActivationServices, UserActivationServices>();
+
 
 
 

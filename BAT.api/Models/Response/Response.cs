@@ -10,7 +10,7 @@ namespace BAT.api.Models.Response
         }
         public Response(T data)
         {
-            Succeeded = false;
+            Succeeded = true;
             Message = string.Empty;
             Data = data;
         }

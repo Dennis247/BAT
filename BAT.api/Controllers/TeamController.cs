@@ -1,9 +1,12 @@
-﻿using BAT.api.Models.Dtos.TeamDtos;
+﻿using BAT.api.Authorization;
+using BAT.api.Models.Dtos.TeamDtos;
+using BAT.api.Models.enums;
 using BAT.api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BAT.api.Controllers
 {
+   
     [Authorize]
     [ApiController]
     [Route("[controller]")]
@@ -26,6 +29,7 @@ namespace BAT.api.Controllers
         }
 
 
+   
         [HttpGet("GetAllTeams")]
         public IActionResult GetAllTeams()
         {
@@ -56,6 +60,13 @@ namespace BAT.api.Controllers
         public IActionResult UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission)
         {
             var response = _teamServices.UpdateTeamPermissions(updateTeamPermission, Account.Id);
+            return Ok(response);
+        }
+
+        [HttpPost("GetTeamsWithUsersAndPriviledges")]
+        public IActionResult GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId)
+        {
+            var response = _teamServices.GetTeamsWithUsersAndPriviledges(teamDetailsId);
             return Ok(response);
         }
     }

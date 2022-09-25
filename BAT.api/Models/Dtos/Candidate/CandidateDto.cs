@@ -14,6 +14,8 @@ namespace BAT.api.Models.Dtos.Candidate
         public string Position { get; set; }
         [Required]
         public string AreaRepresenting { get; set; }
+
+        [RegularExpression("^(?!0+$)(\\+\\d{1,3}[- ]?)?(?!0+$)\\d{10,15}$", ErrorMessage = "Please enter valid phone no.")]
         public string? WhatAppNumber { get; set; }
         public string? Twitter { get; set; }
         public string? FaceBook { get; set; }

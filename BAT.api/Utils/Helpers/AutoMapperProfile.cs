@@ -3,6 +3,8 @@ using AutoMapper;
 using BAT.api.Models.Dtos.AccountDtos;
 using BAT.api.Models.Dtos.Candidate;
 using BAT.api.Models.Dtos.PermissionDtos;
+using BAT.api.Models.Dtos.TeamDtos;
+using BAT.api.Models.Dtos.UserActivationDto;
 using BAT.api.Models.Entities;
 
 public class AutoMapperProfile : Profile
@@ -39,7 +41,20 @@ public class AutoMapperProfile : Profile
         CreateMap<AddCandidateDto, Candidate>();
 
         CreateMap<PermissionDto, Permission>();
+        CreateMap<Permission, PermissionDto>();
 
-        
+
+
+        CreateMap<TeamDetails, Team>();
+        CreateMap<Team, TeamDetails>();
+
+
+        CreateMap<UserActivationDto, UserActivation>();
+        CreateMap<UserActivation, UserActivationDto>();
+
+
+
+
+
     }
 }

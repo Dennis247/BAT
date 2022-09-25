@@ -1,4 +1,5 @@
-﻿using BAT.api.Services;
+﻿using BAT.api.Authorization;
+using BAT.api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BAT.api.Controllers

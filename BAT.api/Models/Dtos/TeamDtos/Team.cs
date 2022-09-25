@@ -1,4 +1,6 @@
-﻿using BAT.api.Models.Entities;
+﻿using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Dtos.PermissionDtos;
+using BAT.api.Models.Entities;
 using System.ComponentModel.DataAnnotations;
 
 namespace BAT.api.Models.Dtos.TeamDtos
@@ -20,6 +22,12 @@ namespace BAT.api.Models.Dtos.TeamDtos
         [Required]
         public int TeamId { get; set; }
         public int AdminId { get; set; }    
+    }
+
+    public class TeamDetailsId
+    {
+        [Required]
+        public int TeamId { get; set; }
     }
 
 
@@ -49,6 +57,19 @@ namespace BAT.api.Models.Dtos.TeamDtos
         public int CretaedBy { get; set; }
         public bool IsDeleted { get; set; }
 
-        public List<Permission> Permissions { get; set; }
+    }
+
+    public class TeamWithUserAndPriviledges
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public DateTime Created { get; set; }
+        public int CretaedBy { get; set; }
+        public bool IsDeleted { get; set; }
+
+        public List<AccountResponse> Accounts { get; set; }
+
+        public List<PermissionDto> Priviledges { get; set; }
+
     }
 }

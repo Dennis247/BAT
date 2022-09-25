@@ -115,7 +115,7 @@ public class AccountService : IAccountService
 
         // validate
         if (account == null)
-            throw new AppException("Secret Answer is not valid");
+            throw new AppException("User Account is not Valid");
 
         //check if new secret answer is the same as old secret answer
 
@@ -123,6 +123,11 @@ public class AccountService : IAccountService
 
         if (encryptedSecretAnswer == newSecretANswer)
             throw new AppException("New secret answer cannot be the same as old secret answer");
+
+        //check if secret answer has already been taken
+        var existingSecretAnswer = _context.Accounts.FirstOrDefault(x => x.SecretAnswer == newSecretANswer);
+        if(existingSecretAnswer != null)
+            throw new AppException("Secret Answer has already been taken, please use another one.");
 
         account.SecretAnswer = newSecretANswer;
 
@@ -239,7 +244,6 @@ public class AccountService : IAccountService
         var account = _mapper.Map<Account>(model);
 
         // first registered account is an admin
-        var isFirstAccount = _context.Accounts.Count() == 0;
         account.Role = Role.Admin;
         account.Created = DateTime.UtcNow;
         account.VerificationToken = generateVerificationToken();
@@ -269,7 +273,7 @@ public class AccountService : IAccountService
         };
 
         _context.AdminTeams.Add(adminTeam);
-        _context.SaveChanges(true);
+        _context.SaveChanges();
 
         // send email
         sendVerificationEmail(account, origin);
@@ -387,6 +391,11 @@ public class AccountService : IAccountService
 
             };
         }
+
+        //validate the team Admin is being added to
+        var validTeam = _context.Teams.FirstOrDefault(x => x.Id == model.TeamId);
+        if (validTeam == null)
+            throw new AppException("Team Id is not valid");
 
 
 

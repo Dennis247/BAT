@@ -20,4 +20,11 @@ namespace BAT.api.Utils.Filters
             PageSize = pageSize > 10 ? 10 : pageSize;
         }
     }
+
+
+    public class PagedParameter
+    {
+        public PaginationFilter PaginationFilter { get; set; }
+        public string Route { get; set; }    
+    }
 }

@@ -4,15 +4,17 @@ using BAT.api.Helpers;
 using BAT.api.Models.Dtos.Candidate;
 using BAT.api.Models.Entities;
 using BAT.api.Models.Response;
+using BAT.api.Utils.Filters;
 using BAT.api.Utils.Helpers;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace BAT.api.Services
 {
     public interface ICandidateService
     {
-        Response<int> AddCandidate(CandidateDto candidateDto, int AdminId);
-        Response<List<CandidateDto>> GetAllCandidates();
+        Response<int> AddCandidate(AddCandidateDto candidateDto, int AdminId);
+        PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, string route);
     }
     public class CandidateService : ICandidateService
     {
@@ -20,33 +22,33 @@ namespace BAT.api.Services
         private readonly IMapper _mapper;
         private readonly AppSettings _appSettings;
         private readonly IEmailService _emailService;
+        private readonly IUriService _uriService;
 
         public CandidateService(
             ApplicationDbContext context,
             IMapper mapper,
             IOptions<AppSettings> appSettings,
-            IEmailService emailService)
+            IEmailService emailService,
+            IUriService uriService)
         {
             _context = context;
             _mapper = mapper;
             _appSettings = appSettings.Value;
             _emailService = emailService;
+            _uriService = uriService;
         }
-        public Response<int> AddCandidate(CandidateDto candidateDto, int AdminId)
+        public Response<int> AddCandidate(AddCandidateDto candidateDto, int AdminId)
         {
             //check if candidate has been added before
-            var existingCandidate = _context.Candidates.FirstOrDefault(x => StringHelpers.IsStringEqual(x.FirstName, candidateDto.FirstName)
-            && StringHelpers.IsStringEqual(x.LastName,candidateDto.LastName) && StringHelpers.IsStringEqual(x.Position, candidateDto.Position)
-            && StringHelpers.IsStringEqual(x.AreaRepresenting, candidateDto.AreaRepresenting));
+            var existingCandidate = _context.Candidates.FirstOrDefault(
+                x => x.FirstName.ToLower().Trim() == candidateDto.FirstName.ToLower().Trim()
+            && x.LastName.ToLower().Trim() == candidateDto.LastName.Trim().ToLower() 
+            &&  x.Position.ToLower().Trim() == candidateDto.Position.ToLower().Trim()
+            && x.AreaRepresenting.ToLower().Trim() == candidateDto.AreaRepresenting.ToLower().Trim());
 
             if(existingCandidate != null)
             {
-                return new Response<int>
-                {
-                    Data = 0,
-                    Message = "Candidate Profile already exist",
-                    Succeeded = true
-                };
+                throw new AppException("Candidate Profile already exist");
             }
 
            var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
@@ -63,16 +65,22 @@ namespace BAT.api.Services
             };
         }
 
-        public Response<List<CandidateDto>> GetAllCandidates()
+        public PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, string route)
         {
-            var allCandidates = _context.Candidates.ToList();
-            var candidateToReturn = _mapper.Map<List<CandidateDto>>(allCandidates);
-            return new Response<List<CandidateDto>>
-            {
-                Data = candidateToReturn,
-                Message = "sucessful",
-                Succeeded = true
-            };
+
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = _context.Candidates
+               .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+               .Take(validFilter.PageSize)
+               .ToList();
+            var totalRecords = _context.Candidates.Count();
+            var candidateToReturn = _mapper.Map<List<CandidateDto>>(pagedData);
+
+
+            var pagedReponse = PaginationHelper.CreatePagedReponse<CandidateDto>(candidateToReturn, validFilter, totalRecords, _uriService, route);
+            return pagedReponse;
+         
         }
     }
 }

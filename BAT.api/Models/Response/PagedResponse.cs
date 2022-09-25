@@ -22,7 +22,7 @@ namespace BAT.api.Models.Response
             PageNumber = pageNumber;
             PageSize = pageSize;
             Data = data;
-            Message = null;
+            Message = "Sucessful";
             Succeeded = true;
         }
     }
