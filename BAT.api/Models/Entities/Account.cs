@@ -10,6 +10,7 @@ public class Account
     public string LastName { get; set; }
     [EmailAddress]
     public string Email { get; set; }
+    public string Username { get; set; }
     public string SecretAnswer { get; set; }
     public string PasswordHash { get; set; }
     public Role Role { get; set; }

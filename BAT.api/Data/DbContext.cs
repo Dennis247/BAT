@@ -1,10 +1,12 @@
-﻿using BAT.api.Models.Entities;
+﻿using BAT.api.Helpers;
+using BAT.api.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,9 +16,14 @@ namespace BAT.api.Data
     public class ApplicationDbContext : DbContext
     {
         private readonly IHttpContextAccessor _context;
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor context) : base(options)
+        private readonly IDbConnection connection;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor context, IConfiguration configuration) : base(options)
         {
             _context = context;
+            connection = new SqlConnection(configuration.GetConnectionString("DefaultConnection"));
+
+
         }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Audit> AuditLogs { get; set; }
@@ -30,6 +37,8 @@ namespace BAT.api.Data
 
         public DbSet<Candidate> Candidates { get; set; }
         public DbSet<UserActivation> UserActivations { get; set; }
+        public DbSet<FileUpload> FileUploads { get; set; }
+        public DbSet<UserData> UserDatas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -100,6 +109,15 @@ namespace BAT.api.Data
         }
 
 
+
+        public void BulkInsert(DataTable table)
+        {
+            using (var bulkInsert = new SqlBulkCopy(connection.ConnectionString))
+            {
+                bulkInsert.DestinationTableName = table.TableName;
+                bulkInsert.WriteToServer(table);
+            }
+        }
 
     }
 

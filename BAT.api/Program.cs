@@ -2,7 +2,9 @@ using BAT.api.Authorization;
 using BAT.api.Data;
 using BAT.api.Helpers;
 using BAT.api.Services;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using WebApi.Authorization;
@@ -25,6 +27,11 @@ builder.Services.AddTransient<ITeamServices, TeamServices>();
 builder.Services.AddTransient<IPermissionService, PermissionService>();
 builder.Services.AddTransient<ICandidateService, CandidateService>();
 builder.Services.AddTransient<IUserActivationServices, UserActivationServices>();
+builder.Services.AddTransient<IUserDataService, UserDataService>();
+builder.Services.AddTransient<IFileUploadService, FileUploadService>();
+
+
+
 
 
 
@@ -90,6 +97,14 @@ builder.Services.AddSingleton<IUriService>(o =>
 });
 
 
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.ValueLengthLimit = int.MaxValue;
+    o.MultipartBodyLengthLimit = int.MaxValue;
+    o.MemoryBufferThreshold = int.MaxValue;
+});
+
+
 var app = builder.Build();
 
 // migrate any database changes on startup (includes initial db creation)
@@ -107,6 +122,12 @@ using (var scope = app.Services.CreateScope())
 //}
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseStaticFiles(new StaticFileOptions()
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"AppUploads")),
+    RequestPath = new PathString("/AppUploads")
+});
 
 app.UseHttpsRedirection();
 

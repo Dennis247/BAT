@@ -21,5 +21,7 @@ namespace BAT.api.Models.Entities
 
         public int CreatedBy { get; set; }  
         public DateTime Created { get; set; }
+
+        public string? CandidateImage { get; set; }
     }
 }

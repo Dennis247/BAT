@@ -8,6 +8,7 @@ using BAT.api.Utils.Filters;
 using BAT.api.Utils.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Text;
 
 namespace BAT.api.Services
 {
@@ -15,6 +16,7 @@ namespace BAT.api.Services
     {
         Response<int> AddCandidate(AddCandidateDto candidateDto, int AdminId);
         PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, string route);
+
     }
     public class CandidateService : ICandidateService
     {
@@ -51,7 +53,29 @@ namespace BAT.api.Services
                 throw new AppException("Candidate Profile already exist");
             }
 
-           var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
+
+
+            //upload image first 
+            string imagePath = "";
+            if (candidateDto.CandidateImageUpload.Length > 0)
+            {
+                var folderName = Path.Combine("AppUploads", "CandidatesImage");
+                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+                var fileName = $"{candidateDto.FirstName}_{candidateDto.LastName}.png";
+                var fullPath = Path.Combine(pathToSave, fileName);
+                 imagePath = Path.Combine(folderName, fileName);
+                imagePath = imagePath.Replace("\\", "//");
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    candidateDto.CandidateImageUpload.CopyTo(stream);
+                }
+              
+            }
+
+            var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
+            candidateToAdd.CandidateImage = imagePath;
+
+
             candidateToAdd.Created = DateTime.Now;
             candidateToAdd.CreatedBy = AdminId;
             _context.Candidates.Add(candidateToAdd);

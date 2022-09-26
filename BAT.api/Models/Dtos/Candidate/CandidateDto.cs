@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BAT.api.Helpers;
+using System.ComponentModel.DataAnnotations;
 
 namespace BAT.api.Models.Dtos.Candidate
 {
@@ -23,11 +24,14 @@ namespace BAT.api.Models.Dtos.Candidate
         public string? Education { get; set; }
         public string? WorkExperinece { get; set; }
         public string? Achievements { get; set; }
+        public IFormFile CandidateImageUpload { get; set; }  
+
     }
 
 
     public class CandidateDto
     {
+
         public int Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
@@ -41,5 +45,12 @@ namespace BAT.api.Models.Dtos.Candidate
         public string? Education { get; set; }
         public string? WorkExperinece { get; set; }
         public string? Achievements { get; set; }
+        public string? CandidateImage { get; set; }
+
+       
+
     }
+
+
+   
 }

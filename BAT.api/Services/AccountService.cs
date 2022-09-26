@@ -20,6 +20,7 @@ using System.Text;
 public interface IAccountService
 {
     Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress);
+    Response<AuthenticateResponse> PublicAuthenticate(PublicAuthRequest model, string ipAddress);
     Response<string> LogOut(int AdminId);
     Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
      Response<string> ResetSecretAnswer(ResetSecretAnswer model);
@@ -99,6 +100,49 @@ public class AccountService : IAccountService
         response.JwtToken = jwtToken;
         response.RefreshToken = refreshToken.Token;
       //  response.HasSecretAnswerExpired = account.HasSecretQUestionExpired;
+        return new Response<AuthenticateResponse>
+        {
+            Data = response,
+            Message = "Login Sucessful",
+            Succeeded = true
+        };
+    }
+
+    public Response<AuthenticateResponse> PublicAuthenticate(PublicAuthRequest model, string ipAddress)
+    {
+
+        var passwordHash = SecureTextHasher.Hash(model.Password);
+        var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
+
+        var account = _context.Accounts.SingleOrDefault(x => x.Username.Equals(model.Username) &&  x.SecretAnswer == encryptedSecretAnswer);
+
+        // validate
+        if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash))
+            throw new AppException("Invalid login credentials");
+
+        var response = _mapper.Map<AuthenticateResponse>(account);
+        response.SecretAnswer = _encryptionHelper.AESDecrypt(account.SecretAnswer);
+
+
+        // authentication successful so generate jwt and refresh tokens
+        var jwtToken = _jwtUtils.GenerateJwtToken(account);
+        var refreshToken = _jwtUtils.GenerateRefreshToken(ipAddress);
+        account.RefreshTokens.Add(refreshToken);
+        account.IsOnline = true;
+        account.LastTimeLoggedIn = DateTime.UtcNow;
+
+        // remove old refresh tokens from account
+        removeOldRefreshTokens(account);
+
+        // save changes to db
+        _context.Update(account);
+        _context.SaveChanges();
+
+
+        response.JwtToken = jwtToken;
+        response.RefreshToken = refreshToken.Token;
+        //  response.HasSecretAnswerExpired = account.HasSecretQUestionExpired;
         return new Response<AuthenticateResponse>
         {
             Data = response,

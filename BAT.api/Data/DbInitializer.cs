@@ -42,6 +42,7 @@ namespace BAT.api.Data
                      FirstName = "Dennis",
                      IsOnline = true,
                      LastName = "Osagiede",
+                     Username = "mustang247",
                      LastTimeLoggedIn = DateTime.UtcNow,
                      LoggedOutTime = DateTime.UtcNow,
                      PasswordHash = SecureTextHasher.Hash("Nappyboy@247"),

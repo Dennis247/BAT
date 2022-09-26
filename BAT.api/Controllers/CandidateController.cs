@@ -1,11 +1,12 @@
-﻿using BAT.api.Models.Dtos.Candidate;
+﻿using BAT.api.Authorization;
+using BAT.api.Models.Dtos.Candidate;
 using BAT.api.Services;
 using BAT.api.Utils.Filters;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BAT.api.Controllers
 {
-    [Authorize]
+     [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class CandidateController : BaseController
@@ -17,6 +18,8 @@ namespace BAT.api.Controllers
             _candidateService = candidateService;
         }
 
+
+        [AllowAnonymous]
         [HttpGet("GetAllCandidates")]
         public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter)
         {
@@ -25,11 +28,14 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
+        [AllowAnonymous]
         [HttpPost("AddCandidate")]
-        public IActionResult AddCandidate(AddCandidateDto candidateDto)
+        public IActionResult AddCandidate([FromForm]AddCandidateDto candidateDto)
         {
-            var response = _candidateService.AddCandidate(candidateDto, Account.Id);
+            var response = _candidateService.AddCandidate(candidateDto,1);
             return Ok(response);
         }
+
+
     }
 }

@@ -28,6 +28,16 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
+    [AllowAnonymous]
+    [HttpPost("PublicAuthenticate")]
+    public IActionResult PublicAuthenticate(PublicAuthRequest model)
+    {
+        var response = _accountService.PublicAuthenticate(model, ipAddress());
+        setTokenCookie(response.Data.RefreshToken);
+        return Ok(response);
+    }
+
+
 
     [AllowAnonymous]
     [HttpPost("LogOut")]

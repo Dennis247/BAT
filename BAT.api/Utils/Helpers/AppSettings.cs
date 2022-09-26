@@ -11,4 +11,5 @@ public class AppSettings
     public string Securitykey { get; set; }
     public int MaximumAdminCount { get; set; }
     public int TokenExpirationTimeHours { get; set; }   
+    public string BaseUrl { get; set; }
 }
