@@ -59,6 +59,11 @@ public class AutoMapperProfile : Profile
 
         CreateMap<UserData, UserDataDto>();
 
+        CreateMap<UserData, UserImportlDataDto>();
+        CreateMap<UserImportlDataDto, UserData>();
+
+
+
     }
 
 

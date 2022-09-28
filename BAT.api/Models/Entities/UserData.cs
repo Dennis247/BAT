@@ -10,7 +10,7 @@
         public string Location { get; set; }
         public int FileId { get; set; }
         public DateTime Created { get; set; }
-        public DateTime CreatedBy { get; set; }
+        public int CreatedBy { get; set; }
 
 
     }

@@ -19,7 +19,6 @@ namespace BAT.api.Controllers
         }
 
 
-        [AllowAnonymous]
         [HttpGet("GetAllCandidates")]
         public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter)
         {
@@ -28,11 +27,10 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
-        [AllowAnonymous]
         [HttpPost("AddCandidate")]
         public IActionResult AddCandidate([FromForm]AddCandidateDto candidateDto)
         {
-            var response = _candidateService.AddCandidate(candidateDto,1);
+            var response = _candidateService.AddCandidate(candidateDto,Account.Id);
             return Ok(response);
         }
 

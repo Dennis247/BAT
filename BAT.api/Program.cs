@@ -123,11 +123,11 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseStaticFiles(new StaticFileOptions()
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"AppUploads")),
-    RequestPath = new PathString("/AppUploads")
-});
+//app.UseStaticFiles(new StaticFileOptions()
+//{
+//    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"AppUploads")),
+//    RequestPath = new PathString("/AppUploads")
+//});
 
 app.UseHttpsRedirection();
 

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BAT.api.Controllers
 {
-   
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class FileUploadController : BaseController
@@ -25,7 +25,7 @@ namespace BAT.api.Controllers
         [HttpPost("UploadUserData")]
         public IActionResult UploadUserData(IFormFile model)
         {
-            var response = _fileUploadService.UploadUserData(model, 1);
+            var response = _fileUploadService.UploadUserData(model, Account.Id);
             return Ok(response);
         }
 

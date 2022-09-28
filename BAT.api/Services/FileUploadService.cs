@@ -16,6 +16,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Net.Http.Headers;
 
 namespace BAT.api.Services
@@ -82,6 +83,7 @@ namespace BAT.api.Services
                 }
                
                 userDataMergeList.AddRange(_context.UserDatas.Where(x => x.FileId == item));
+                
                 var file = _context.FileUploads.SingleOrDefault(x => x.Id == item);
                 fileTypes.Add(file.FileType);
             }
@@ -104,7 +106,8 @@ namespace BAT.api.Services
             filePath = filePath.Replace("\\", "//");
             using (var writer = new ExcelWriter(fullPath))
             {
-                writer.WriteRecords(userDataMergeList);
+                var dataToWrite = _mapper.Map<List<UserImportlDataDto>>(userDataMergeList);
+                writer.WriteRecords(dataToWrite);
             }
 
             //write merge data to the database
@@ -143,111 +146,136 @@ namespace BAT.api.Services
 
             string fileExtension = Path.GetExtension(formFile.FileName);
 
-            if (!fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            if (fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                fileExtension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                throw new AppException("Only .xlsx and .csv format is supported");
-            }
+                //Todo upload large file to path and seed the file content to database
 
-            //Todo upload large file to path and seed the file content to database
+                //check if file has already been uploaded 
+                var existingFIle = _context.FileUploads.FirstOrDefault(x => x.FileName == formFile.FileName);
+                if (existingFIle != null)
+                    throw new AppException("This file has already been uploaded");
 
-            //check if file has already been uploaded 
-            var existingFIle = _context.FileUploads.FirstOrDefault(x=>x.FileName == formFile.FileName);
-            if (existingFIle != null)
-                throw new AppException("This file has already been uploaded");
+                var folderName = Path.Combine("AppUploads", "UserData");
+                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
 
-            var folderName = Path.Combine("AppUploads", "UserData");
-            var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
-
-            var fileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
-            var fullPath = Path.Combine(pathToSave, fileName);
-            var filePath = Path.Combine(folderName, fileName);
-            filePath = filePath.Replace("\\", "//");
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                formFile.CopyTo(stream);
-            }
-
-            _context.connection.Open();
-            using (var transaction = _context.connection.BeginTransaction())
-            {
-
-                try
+                var fileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
+                var fullPath = Path.Combine(pathToSave, fileName);
+                var filePath = Path.Combine(folderName, fileName);
+                filePath = filePath.Replace("\\", "//");
+                using (var stream = new FileStream(fullPath, FileMode.Create))
                 {
-         //           _context.Database.UseTransaction(transaction as DbTransaction);
-                    FileUpload fileUpload = new FileUpload
+                    formFile.CopyTo(stream);
+                }
+
+                _context.connection.Open();
+                using (var transaction = _context.connection.BeginTransaction())
+                {
+
+                    try
                     {
-                        UploadedBy = AdminId,
-                        DateUploaded = DateTime.UtcNow,
-                        FileName = formFile.FileName,
-                        FileType = fileExtension,
-                        DownloadUrl = filePath
-                    };
+                        //           _context.Database.UseTransaction(transaction as DbTransaction);
 
-                    _context.FileUploads.Add(fileUpload);
+                        List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
 
-       
+                        FileUpload fileUpload = new FileUpload
+                        {
+                            UploadedBy = AdminId,
+                            DateUploaded = DateTime.UtcNow,
+                            FileName = formFile.FileName,
+                            FileType = fileExtension,
+                            DownloadUrl = filePath
+                        };
 
-                    //Todo read file from excel and bulk insert into db
-                    using var reader = new CsvReader(new ExcelParser(fullPath));
-                    var userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+                        _context.FileUploads.Add(fileUpload);
+                        _context.SaveChanges();
 
-                    DataTable table = new DataTable();
-                    table.TableName = "UserDatas";
+                        if (fileExtension.ToLower() == ".csv")
+                        {
+                            //Todo read file from excel and bulk insert into db
+                            using (var reader2 = new StreamReader(fullPath))
+                            using (var csv = new CsvReader(reader2, CultureInfo.InvariantCulture))
+                            {
+                                userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
+                            }
+                        }
+                        else if (fileExtension.ToLower() == ".xlsx")
+                        {
+                            //Todo read file from excel and bulk insert into db
+                            using var reader = new CsvReader(new ExcelParser(fullPath));
+                            userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+                        }
 
 
-                    table.Columns.Add("Id", typeof(string));
-                    table.Columns.Add("FirstName", typeof(string));
-                    table.Columns.Add("LastName", typeof(string));
-                    table.Columns.Add("Email", typeof(string));
-                    table.Columns.Add("State", typeof(string));
-                    table.Columns.Add("Location", typeof(string));
-                    table.Columns.Add("FileId", typeof(int));
-                    table.Columns.Add("Created", typeof(DateTime));
-                    table.Columns.Add("CreatedBy", typeof(DateTime));
 
 
-                    foreach (var userData in userDataToSave)
+
+
+
+
+                        DataTable table = new DataTable();
+                        table.TableName = "UserDatas";
+
+
+                        table.Columns.Add("Id", typeof(string));
+                        table.Columns.Add("FirstName", typeof(string));
+                        table.Columns.Add("LastName", typeof(string));
+                        table.Columns.Add("Email", typeof(string));
+                        table.Columns.Add("State", typeof(string));
+                        table.Columns.Add("Location", typeof(string));
+                        table.Columns.Add("FileId", typeof(int));
+                        table.Columns.Add("Created", typeof(DateTime));
+                        table.Columns.Add("CreatedBy", typeof(int));
+
+
+                        foreach (var userData in userDataToSave)
+                        {
+                            var row = table.NewRow();
+                            row["Id"] = 0;
+                            row[nameof(userData.FirstName)] = userData.FirstName;
+                            row[nameof(userData.LastName)] = userData.LastName;
+                            row[nameof(userData.Email)] = userData.Email;
+                            row[nameof(userData.State)] = userData.State;
+                            row[nameof(userData.Location)] = userData.Location;
+                            row["Created"] = DateTime.Now;
+                            row["CreatedBy"] = AdminId;
+                            row["FileId"] = fileUpload.Id;
+                            table.Rows.Add(row);
+                        }
+
+
+                        _context.BulkInsert(table);
+                        _context.SaveChanges();
+                        transaction.Commit();
+
+                    }
+                    catch (Exception ex)
                     {
-                        var row = table.NewRow();
-                        row["Id"] = 0;
-                        row[nameof(userData.FirstName)] = userData.FirstName;
-                        row[nameof(userData.LastName)] = userData.LastName;
-                        row[nameof(userData.Email)] = userData.Email;
-                        row[nameof(userData.State)] = userData.State;
-                        row[nameof(userData.Location)] = userData.Location;
-                        row["Created"] = DateTime.Now;
-                        row["CreatedBy"] = AdminId;
-                        row["FileId"] = fileUpload.Id;
-                        table.Rows.Add(row);
+                        transaction.Rollback();
+                        File.Delete(fullPath);
+                        throw new Exception(ex.ToString());
+                    }
+                    finally
+                    {
+                        _context.connection.Close();
                     }
 
+                }
 
-                    _context.BulkInsert(table);
-                     _context.SaveChanges();
-                    transaction.Commit();
 
-                }
-                catch (Exception ex)
+                return new Response<string>
                 {
-                    transaction.Rollback();
-                    File.Delete(fullPath);
-                    throw new Exception(ex.ToString());
-                }
-                finally
-                {
-                    _context.connection.Close();
-                }
+                    Data = "",
+                    Message = "File Upload sucessfull",
+                    Succeeded = true,
+
+                };
+
 
             }
 
+            throw new AppException("Only .xlsx and .csv format is supported");
 
-            return new Response<string>
-            {
-                Data = "",
-                Message = "File Upload sucessfull",
-                Succeeded = true,
-
-            };
         }
 
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route)

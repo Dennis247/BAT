@@ -15,9 +15,9 @@ namespace BAT.api.Models.Entities
 
         //merge details
         public bool IsMerged { get; set; }
-        public int MergedBy { get; set; }
+        public int? MergedBy { get; set; }
         public DateTime? DateMerged { get; set; }
-        public string MergedIds { get; set; }
+        public string? MergedIds { get; set; }
 
     }
 
