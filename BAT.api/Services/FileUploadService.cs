@@ -98,7 +98,7 @@ namespace BAT.api.Services
             //write the merge list to a file --either excel or csv
             var folderName = Path.Combine("AppUploads", "UserData");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
-            var fileName = mergeUserDataDto.MergedFileName;
+            var fileName = mergeUserDataDto.MergedFileName+ fileType;
             var fullPath = Path.Combine(pathToSave, fileName);
             var filePath = Path.Combine(folderName, fileName);
             filePath = filePath.Replace("\\", "//");

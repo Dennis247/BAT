@@ -51,7 +51,7 @@ namespace BAT.api.Controllers
         public IActionResult MergeUserData(MergeUserDataDto mergeUserDataDto)
         {
             var route = Request.Path.Value;
-            var response = _fileUploadService.MergeUserData(mergeUserDataDto,Account.Id);
+            var response = _fileUploadService.MergeUserData(mergeUserDataDto,1);
             return Ok(response);
         }
 
