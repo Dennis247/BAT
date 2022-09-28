@@ -1,4 +1,5 @@
 ﻿using BAT.api.Models.Dtos.FileUpload;
+using BAT.api.Models.Dtos.UserData;
 using BAT.api.Services;
 using BAT.api.Utils.Filters;
 using Microsoft.AspNetCore.Http;
@@ -24,7 +25,7 @@ namespace BAT.api.Controllers
         [HttpPost("UploadUserData")]
         public IActionResult UploadUserData(IFormFile model)
         {
-            var response = _fileUploadService.UploadUserData(model, Account.Id);
+            var response = _fileUploadService.UploadUserData(model, 1);
             return Ok(response);
         }
 
@@ -42,6 +43,15 @@ namespace BAT.api.Controllers
         {
             var route = Request.Path.Value;
             var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
+            return Ok(response);
+        }
+
+
+        [HttpPost("MergeUserData")]
+        public IActionResult MergeUserData(MergeUserDataDto mergeUserDataDto)
+        {
+            var route = Request.Path.Value;
+            var response = _fileUploadService.MergeUserData(mergeUserDataDto,Account.Id);
             return Ok(response);
         }
 

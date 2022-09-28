@@ -11,8 +11,11 @@ using BAT.api.Utils.Helpers;
 using CsvHelper;
 using CsvHelper.Excel;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System.Data;
+using System.Data.Common;
 using System.Net.Http.Headers;
 
 namespace BAT.api.Services
@@ -22,6 +25,7 @@ namespace BAT.api.Services
         PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route);
         Response<string> UploadUserData(IFormFile formFile, int AdminId);
         PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
+        Response<string> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
     }
 
     public class FileUploadService : IFileUploadService
@@ -62,6 +66,74 @@ namespace BAT.api.Services
 
         }
 
+        public Response<string> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId)
+        {
+            //validate all the files sent for merging
+
+            List<UserData> userDataMergeList = new List<UserData>();
+
+            var existingFiles = _context.FileUploads.Select(x => x.Id).ToList();
+            var fileTypes = new List<string>();
+            foreach (var item in mergeUserDataDto.FilesIds)
+            {
+                if (!existingFiles.Contains(item))
+                {
+                    throw new Exception("Merging operations contains an invalid file");
+                }
+               
+                userDataMergeList.AddRange(_context.UserDatas.Where(x => x.FileId == item));
+                var file = _context.FileUploads.SingleOrDefault(x => x.Id == item);
+                fileTypes.Add(file.FileType);
+            }
+
+            var fileTypeCOunt = fileTypes.Distinct().Count();
+            if(fileTypeCOunt > 1)
+            {
+                throw new Exception("File Types must be distinct.");
+            }
+
+            //Tdod throw exeception if file type is not distinct
+
+            string fileType = fileTypes[0];
+            //write the merge list to a file --either excel or csv
+            var folderName = Path.Combine("AppUploads", "UserData");
+            var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+            var fileName = mergeUserDataDto.MergedFileName;
+            var fullPath = Path.Combine(pathToSave, fileName);
+            var filePath = Path.Combine(folderName, fileName);
+            filePath = filePath.Replace("\\", "//");
+            using (var writer = new ExcelWriter(fullPath))
+            {
+                writer.WriteRecords(userDataMergeList);
+            }
+
+            //write merge data to the database
+
+            FileUpload fileUpload = new FileUpload
+            {
+                FileName = fileName,
+                UploadedBy = AdminId,
+                DateUploaded = DateTime.Now,
+                DownloadUrl = filePath,
+                FileType = fileType,
+                FileUploadType = FileUploadType.UserData,
+                IsMerged = true,
+                DateMerged = DateTime.Now,
+                MergedBy = AdminId,
+                MergedIds = JsonConvert.SerializeObject(mergeUserDataDto.FilesIds),
+                
+            };
+            _context.FileUploads.Add(fileUpload);
+            _context.SaveChanges();
+            return new Response<string>
+            {
+                Succeeded = true,
+                Data = "",
+                Message = "Merge Sucessful"
+            };
+
+        }
+
         public Response<string> UploadUserData(IFormFile formFile, int AdminId)
         {
             if (formFile == null || formFile.Length <= 0)
@@ -71,13 +143,17 @@ namespace BAT.api.Services
 
             string fileExtension = Path.GetExtension(formFile.FileName);
 
-            if (!fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
-                !fileExtension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            if (!fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
             {
                 throw new AppException("Only .xlsx and .csv format is supported");
             }
 
             //Todo upload large file to path and seed the file content to database
+
+            //check if file has already been uploaded 
+            var existingFIle = _context.FileUploads.FirstOrDefault(x=>x.FileName == formFile.FileName);
+            if (existingFIle != null)
+                throw new AppException("This file has already been uploaded");
 
             var folderName = Path.Combine("AppUploads", "UserData");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -91,48 +167,78 @@ namespace BAT.api.Services
                 formFile.CopyTo(stream);
             }
 
-
-
-            FileUpload fileUpload = new FileUpload
+            _context.connection.Open();
+            using (var transaction = _context.connection.BeginTransaction())
             {
-                UploadedBy = AdminId,
-                DateUploaded = DateTime.UtcNow,
-                FileName = formFile.FileName,
-                FileType = fileExtension,
-                DownloadUrl = filePath
-            };
 
-            _context.FileUploads.Add(fileUpload);
-            _context.SaveChanges();
+                try
+                {
+         //           _context.Database.UseTransaction(transaction as DbTransaction);
+                    FileUpload fileUpload = new FileUpload
+                    {
+                        UploadedBy = AdminId,
+                        DateUploaded = DateTime.UtcNow,
+                        FileName = formFile.FileName,
+                        FileType = fileExtension,
+                        DownloadUrl = filePath
+                    };
+
+                    _context.FileUploads.Add(fileUpload);
+
+       
+
+                    //Todo read file from excel and bulk insert into db
+                    using var reader = new CsvReader(new ExcelParser(fullPath));
+                    var userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+
+                    DataTable table = new DataTable();
+                    table.TableName = "UserDatas";
 
 
-            //Todo read file from excel and bulk insert into db
-            using var reader = new CsvReader(new ExcelParser(fullPath));
-            var userDataToSave = reader.GetRecords<UserData>();
+                    table.Columns.Add("Id", typeof(string));
+                    table.Columns.Add("FirstName", typeof(string));
+                    table.Columns.Add("LastName", typeof(string));
+                    table.Columns.Add("Email", typeof(string));
+                    table.Columns.Add("State", typeof(string));
+                    table.Columns.Add("Location", typeof(string));
+                    table.Columns.Add("FileId", typeof(int));
+                    table.Columns.Add("Created", typeof(DateTime));
+                    table.Columns.Add("CreatedBy", typeof(DateTime));
 
-            DataTable table = new DataTable();
-            table.TableName = "UserData";
 
-            table.Columns.Add("FirstName", typeof(string));
-            table.Columns.Add("LastName", typeof(string));
-            table.Columns.Add("Email", typeof(string));
-            table.Columns.Add("State", typeof(string));
-            table.Columns.Add("Location", typeof(string));
-            table.Columns.Add("FileId", typeof(int));
+                    foreach (var userData in userDataToSave)
+                    {
+                        var row = table.NewRow();
+                        row["Id"] = 0;
+                        row[nameof(userData.FirstName)] = userData.FirstName;
+                        row[nameof(userData.LastName)] = userData.LastName;
+                        row[nameof(userData.Email)] = userData.Email;
+                        row[nameof(userData.State)] = userData.State;
+                        row[nameof(userData.Location)] = userData.Location;
+                        row["Created"] = DateTime.Now;
+                        row["CreatedBy"] = AdminId;
+                        row["FileId"] = fileUpload.Id;
+                        table.Rows.Add(row);
+                    }
 
-            foreach (var userData in userDataToSave)
-            {
-                var row = table.NewRow();
-                row[nameof(userData.FirstName)] = userData.FirstName;
-                row[nameof(userData.FirstName)] = userData.LastName;
-                row[nameof(userData.FirstName)] = userData.Email;
-                row[nameof(userData.FirstName)] = userData.State;
-                row[nameof(userData.FirstName)] = userData.Location;
-                row[nameof(userData.FileId)] = fileUpload;
-                table.Rows.Add(row);
+
+                    _context.BulkInsert(table);
+                     _context.SaveChanges();
+                    transaction.Commit();
+
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    File.Delete(fullPath);
+                    throw new Exception(ex.ToString());
+                }
+                finally
+                {
+                    _context.connection.Close();
+                }
+
             }
-
-            _context.BulkInsert(table);
 
 
             return new Response<string>
@@ -157,7 +263,7 @@ namespace BAT.api.Services
                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
                .Take(validFilter.PageSize)
                .ToList();
-            var totalRecords = _context.FileUploads.Count();
+            var totalRecords = _context.UserDatas.Count();
             var userDataToReturn = _mapper.Map<List<UserDataDto>>(pagedData);
 
 

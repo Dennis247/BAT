@@ -9,6 +9,20 @@
         public string State { get; set; }
         public string Location { get; set; }
         public int FileId { get; set; }
+        public bool IsMerged { get; set; }  
+
+    }
+
+
+    public class UserImportlDataDto
+    {
+     
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string State { get; set; }
+        public string Location { get; set; }
+
 
     }
 }

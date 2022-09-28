@@ -12,6 +12,13 @@ namespace BAT.api.Models.Entities
         public int UploadedBy { get; set; }
         public FileUploadType FileUploadType { get; set; }
 
+
+        //merge details
+        public bool IsMerged { get; set; }
+        public int MergedBy { get; set; }
+        public DateTime? DateMerged { get; set; }
+        public string MergedIds { get; set; }
+
     }
 
     

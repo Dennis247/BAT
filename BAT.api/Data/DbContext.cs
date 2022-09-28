@@ -16,7 +16,7 @@ namespace BAT.api.Data
     public class ApplicationDbContext : DbContext
     {
         private readonly IHttpContextAccessor _context;
-        private readonly IDbConnection connection;
+        public  IDbConnection connection;
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor context, IConfiguration configuration) : base(options)
         {
