@@ -252,18 +252,38 @@ namespace BAT.api.Services
 
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route)
         {
+            List<int> mergedids = new List<int>();
+            List<UserData> pagedData = new List<UserData>();
             var userData = _context.FileUploads.FirstOrDefault(x => x.Id == FileId);
+            int count = 0;
             if (userData == null)
                 throw new AppException("Inavlid file Id");
 
             //get file that holds all the data and read the data into a list
 
+            if (userData.IsMerged) {
+                mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedIds));
+            }
+
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            List<UserData> pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
-               .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-               .Take(validFilter.PageSize)
-               .ToList();
-            var totalRecords = _context.UserDatas.Count();
+            if(userData.IsMerged)
+            {
+                pagedData = _context.UserDatas.Where(x => mergedids.Contains(x.FileId))
+           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+           .Take(validFilter.PageSize)
+           .ToList();
+                count = _context.UserDatas.Count(x => mergedids.Contains(x.FileId));
+            }
+            else
+            {
+                pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
+           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+           .Take(validFilter.PageSize)
+           .ToList();
+                count = _context.UserDatas.Count();
+            }
+         
+            var totalRecords = count;
             var userDataToReturn = _mapper.Map<List<UserDataDto>>(pagedData);
 
 
