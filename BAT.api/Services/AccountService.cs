@@ -5,11 +5,14 @@ using BAT.api.Authorization;
 using BAT.api.Data;
 using BAT.api.Helpers;
 using BAT.api.Models.Dtos.AccountDtos;
+using BAT.api.Models.Dtos.PermissionDtos;
+using BAT.api.Models.Dtos.TeamDtos;
 using BAT.api.Models.Entities;
 using BAT.api.Models.enums;
 using BAT.api.Models.Response;
 using BAT.api.Utils.Helpers;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -20,22 +23,26 @@ using System.Text;
 public interface IAccountService
 {
     Response<AuthenticateResponse> Authenticate(AuthenticateRequest model, string ipAddress);
+    Response<AuthenticateResponse> AuthenticatePrivateAdmin(AuthenticateRequest model, string ipAddress);
     Response<AuthenticateResponse> PublicAuthenticate(PublicAuthRequest model, string ipAddress);
+    Response<int> Register(RegisterRequest model, string origin);
+    Response<int> RegisterPrivateAdmin(RegisterRequest model, string origin);
     Response<string> LogOut(int AdminId);
     Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
      Response<string> ResetSecretAnswer(ResetSecretAnswer model);
     Response<IEnumerable<AccountResponse>> GetAll();
     Response<AccountResponse> GetById(int id);
     Response<AuthenticateResponse> RefreshToken(string token, string ipAddress);
-    Response<int> Register(RegisterRequest model, string origin);
+
     Response<string> ResetPassword(ResetPasswordRequest model);
     Response<bool> RevokeToken(string token, string ipAddress);
     Response<string> VerifyEmail(string token);
     Response<string> ProvisionAdmin(ProvisonAdminRequest model,int  AdminId);
-
-
-    
+    Response<string> RevokeInvite(RevokeAdminRequest model);
+    Response<List<ProvisonAdminRequest>> PendingActivationRequest();
+    Response<string> DeleteAdmin(DeleteAdminRequest deleteAdminRequest);
 }
+
 
 public class AccountService : IAccountService
 {
@@ -70,7 +77,7 @@ public class AccountService : IAccountService
         var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
 
         var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
-        && x.LastName.ToLower() == model.LastName.ToLower() && x.SecretAnswer == encryptedSecretAnswer);
+        && x.LastName.ToLower() == model.LastName.ToLower() && x.SecretAnswer == encryptedSecretAnswer && x.IsAdminPrivate);
 
         
 
@@ -108,14 +115,16 @@ public class AccountService : IAccountService
         };
     }
 
-    public Response<AuthenticateResponse> PublicAuthenticate(PublicAuthRequest model, string ipAddress)
+
+    public Response<AuthenticateResponse> AuthenticatePrivateAdmin(AuthenticateRequest model, string ipAddress)
     {
 
-        var passwordHash = SecureTextHasher.Hash(model.Password);
         var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
 
+        var account = _context.Accounts.SingleOrDefault(x => x.FirstName.ToLower() == model.FirstName.ToLower()
+        && x.LastName.ToLower() == model.LastName.ToLower() && x.SecretAnswer == encryptedSecretAnswer && x.IsAdminPrivate);
 
-        var account = _context.Accounts.SingleOrDefault(x => x.Username.Equals(model.Username) &&  x.SecretAnswer == encryptedSecretAnswer);
+
 
         // validate
         if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash))
@@ -124,6 +133,23 @@ public class AccountService : IAccountService
         var response = _mapper.Map<AuthenticateResponse>(account);
         response.SecretAnswer = _encryptionHelper.AESDecrypt(account.SecretAnswer);
 
+        var alluserTeams = _context.AdminTeams.Where(x => x.AdminId == account.Id);
+        if (alluserTeams.Any())
+        {
+            var allTeamIds = alluserTeams.Select(x => x.Id);
+            var allUserTeams = _context.Teams.Where(x => allTeamIds.Contains(x.Id));
+            //get all permissions for the team
+            var allUserTeamPermissions = _context.TeamPermissions.Where(x => allTeamIds.Contains(x.TeamId)).Select(x => x.PermissionId).ToList();
+
+            var allPermissions = _context.Permissions.Where(x => allUserTeamPermissions.Contains(x.Id)).ToList();
+
+
+            response.UserPermissions = _mapper.Map<List<PermissionDto>>(allPermissions);
+            response.Teams = _mapper.Map<List<UserTeam>>(allUserTeams);
+
+        }
+
+
 
         // authentication successful so generate jwt and refresh tokens
         var jwtToken = _jwtUtils.GenerateJwtToken(account);
@@ -131,6 +157,71 @@ public class AccountService : IAccountService
         account.RefreshTokens.Add(refreshToken);
         account.IsOnline = true;
         account.LastTimeLoggedIn = DateTime.UtcNow;
+
+        // remove old refresh tokens from account
+        removeOldRefreshTokens(account);
+
+        // save changes to db
+        _context.Update(account);
+        _context.SaveChanges();
+
+
+        response.JwtToken = jwtToken;
+        response.RefreshToken = refreshToken.Token;
+        //  response.HasSecretAnswerExpired = account.HasSecretQUestionExpired;
+        return new Response<AuthenticateResponse>
+        {
+            Data = response,
+            Message = "Login Sucessful",
+            Succeeded = true
+        };
+    }
+
+
+    public Response<AuthenticateResponse> PublicAuthenticate(PublicAuthRequest model, string ipAddress)
+    {
+
+        var passwordHash = SecureTextHasher.Hash(model.Password);
+        var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
+
+        var account = _context.Accounts.SingleOrDefault(x => x.Username.Equals(model.Username) &&  x.SecretAnswer == encryptedSecretAnswer && !x.IsAdminPrivate);
+
+        // validate
+        if (account == null || !SecureTextHasher.Verify(model.Password, account.PasswordHash))
+            throw new AppException("Invalid login credentials");
+
+        var response = _mapper.Map<AuthenticateResponse>(account);
+        response.SecretAnswer = _encryptionHelper.AESDecrypt(account.SecretAnswer);
+
+    
+
+        var alluserTeams = _context.AdminTeams.Where(x => x.AdminId == account.Id);
+        if (alluserTeams.Any())
+        {
+            var allTeamIds = alluserTeams.Select(x => x.Id);
+            var allUserTeams = _context.Teams.Where(x => allTeamIds.Contains(x.Id));
+            //get all permissions for the team
+            var allUserTeamPermissions = _context.TeamPermissions.Where(x => allTeamIds.Contains(x.TeamId)).Select(x => x.PermissionId).ToList();
+
+            var allPermissions = _context.Permissions.Where(x => allUserTeamPermissions.Contains(x.Id)).ToList();
+
+
+            response.UserPermissions = _mapper.Map<List<PermissionDto>>(allPermissions);
+            response.Teams = _mapper.Map<List<UserTeam>>(allUserTeams);
+
+        }
+
+
+        // authentication successful so generate jwt and refresh tokens
+        var jwtToken = _jwtUtils.GenerateJwtToken(account);
+        var refreshToken = _jwtUtils.GenerateRefreshToken(ipAddress);
+        account.RefreshTokens.Add(refreshToken);
+        account.IsOnline = true;
+        account.LastTimeLoggedIn = DateTime.UtcNow;
+        //get user Teams
+        //var userTeams = _context.AdminTeams.Where(x => x.AdminId == account.Id).sel;
+        //var UserPermissions = _context.TeamPermissions.Where(x => x.)
 
         // remove old refresh tokens from account
         removeOldRefreshTokens(account);
@@ -288,7 +379,7 @@ public class AccountService : IAccountService
         var account = _mapper.Map<Account>(model);
 
         // first registered account is an admin
-        account.Role = Role.Admin;
+        account.Role = ROLES.Admin;
         account.Created = DateTime.UtcNow;
         account.VerificationToken = generateVerificationToken();
 
@@ -314,6 +405,93 @@ public class AccountService : IAccountService
             AdminId = account.Id,
             TeamId = hasAdminBeenProvisoned.TeamId,
            
+        };
+
+        _context.AdminTeams.Add(adminTeam);
+        _context.SaveChanges();
+
+        // send email
+        sendVerificationEmail(account, origin);
+
+        return new Response<int>
+        {
+            Data = account.Id,
+            Succeeded = true,
+            Message = "User Registration sucessful"
+        };
+    }
+
+
+    public Response<int> RegisterPrivateAdmin(RegisterRequest model, string origin)
+    {
+
+        //check if it has reached maximum admin count
+        if (_context.Accounts.Count() == 5)
+        {
+            return new Response<int>
+            {
+                Data = 0,
+                Message = "Maximum number of Admin has been Registered",
+                Succeeded = false
+            };
+        }
+
+        //check if password is string
+        var isPasswordStrong = SecureTextHasher.IsPasswordStrong(model.Password);
+        if (!isPasswordStrong)
+        {
+            throw new AppException("Password must have minimum of 8 characters in lenght/nAt least one upper case\nAt least one lower case\nAt least one digit\nAt least one special character");
+        }
+
+        //check if this Admin has been provisoned before they can register
+        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
+        if (hasAdminBeenProvisoned == null)
+        {
+            throw new KeyNotFoundException("Your profile has not been provisoned by an Admin.");
+        }
+
+        // check if user already exist using first name , last name and password
+
+        var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
+        if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
+        {
+            throw new AppException("Your information matches an existing user,\nplease fill in the correct information or sign in");
+        }
+
+
+
+        // map model to new account object
+        var account = _mapper.Map<Account>(model);
+
+        // first registered account is an admin
+        account.Role = ROLES.Admin;
+        account.Created = DateTime.UtcNow;
+        account.VerificationToken = generateVerificationToken();
+
+        // hash password & sceurity answer
+        account.PasswordHash = SecureTextHasher.Hash(model.Password);
+        account.SecretAnswer = secretHash;
+        account.IsAdminPrivate = true;
+
+
+        hasAdminBeenProvisoned.HasCompletedRegistration = true;
+
+        // save account
+        _context.Accounts.Add(account);
+        _context.ProvisionedAdmins.Update(hasAdminBeenProvisoned);
+        _context.SaveChanges();
+
+
+        //add user to team
+
+        AdminTeam adminTeam = new AdminTeam
+        {
+            AddedBy = hasAdminBeenProvisoned.RequesterId,
+            Created = DateTime.UtcNow,
+            AdminId = account.Id,
+            TeamId = hasAdminBeenProvisoned.TeamId,
+
         };
 
         _context.AdminTeams.Add(adminTeam);
@@ -510,6 +688,36 @@ public class AccountService : IAccountService
 
 
 
+    public  Response<List<ProvisonAdminRequest>> PendingActivationRequest()
+    {
+        var pendingActivation = _context.ProvisionedAdmins.Where(x => x.HasCompletedRegistration == false).ToList();
+        var adminToReturn = _mapper.Map<List<ProvisonAdminRequest>>(pendingActivation);
+        return new Response<List<ProvisonAdminRequest>>
+        {
+            Data = adminToReturn,
+            Message = "Sucessful",
+            Succeeded = true
+        };
+    }
+
+    public Response<string> DeleteAdmin(DeleteAdminRequest deleteAdminRequest)
+    {
+        var accountForDelete = _context.Accounts.AsNoTracking().FirstOrDefault(x => x.Id == deleteAdminRequest.AdminId);
+        if (accountForDelete == null)
+            throw new KeyNotFoundException("Admin Not Found");
+        _context.Accounts.Remove(accountForDelete);
+        _context.SaveChanges();
+        return new Response<string>
+        {
+            Data = "",
+            Message = "Sucessful",
+            Succeeded = true
+        };
+    }
+
+
+
+    
 
     // helper methods
 
@@ -667,5 +875,16 @@ public class AccountService : IAccountService
         );
     }
 
-
+    public Response<string> RevokeInvite(RevokeAdminRequest model)
+    {
+       var existingInvite = _context.ProvisionedAdmins.FirstOrDefault(x=>x.Email == model.Email);
+        if (existingInvite == null)
+            throw new KeyNotFoundException("Request Not found");
+        return new Response<string>
+        {
+            Data = "",
+            Message = "Request revoked sucessful",
+            Succeeded = true
+        };
+    }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BAT.api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20220928003456_colfixnew")]
-    partial class colfixnew
+    [Migration("20220930135958_IsPrivateAdmin")]
+    partial class IsPrivateAdmin
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -43,6 +43,9 @@ namespace BAT.api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsAdminPrivate")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsOnline")
                         .HasColumnType("bit");
 
@@ -69,8 +72,9 @@ namespace BAT.api.Migrations
                     b.Property<DateTime?>("ResetTokenExpires")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecretAnswer")
                         .IsRequired()
@@ -98,15 +102,16 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6157),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6369),
                             Email = "batAdmin@gmail.com",
                             FirstName = "Dennis",
+                            IsAdminPrivate = false,
                             IsOnline = true,
                             LastName = "Osagiede",
-                            LastTimeLoggedIn = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6158),
-                            LoggedOutTime = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6158),
-                            PasswordHash = "$HASH|V1$10000$eKoVY3MlMPCCsQ0qiqXt/LCMxP01EC5xm+IhTzogCCcLY9US",
-                            Role = 2,
+                            LastTimeLoggedIn = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6370),
+                            LoggedOutTime = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6370),
+                            PasswordHash = "$HASH|V1$10000$xN446MsJe4SZ0L4oxBfAcwWuhgop59Ue7tC37oxjum5R6d8v",
+                            Role = "SuperAdmin",
                             SecretAnswer = "TnVUfh67W2LTbJemuDoCQQ==",
                             Username = "mustang247",
                             VerificationToken = ""
@@ -287,6 +292,9 @@ namespace BAT.api.Migrations
                     b.Property<DateTime?>("DateMerged")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DateProcessed")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DateUploaded")
                         .HasColumnType("datetime2");
 
@@ -305,14 +313,30 @@ namespace BAT.api.Migrations
                     b.Property<int>("FileUploadType")
                         .HasColumnType("int");
 
+                    b.Property<string>("HourMerged")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HourUploaded")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsMerged")
                         .HasColumnType("bit");
 
-                    b.Property<int>("MergedBy")
+                    b.Property<bool>("IsProcessed")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MergedBy")
                         .HasColumnType("int");
 
                     b.Property<string>("MergedIds")
-                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ProcessedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProcessedIds")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UploadedBy")
@@ -349,77 +373,77 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6041),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6248),
                             CreatedBy = 1,
                             Name = "Can use upload data feature"
                         },
                         new
                         {
                             Id = 2,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6043),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6250),
                             CreatedBy = 1,
                             Name = "Can use the process data feature"
                         },
                         new
                         {
                             Id = 3,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6043),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6251),
                             CreatedBy = 1,
                             Name = "Can use the analyze data feature"
                         },
                         new
                         {
                             Id = 4,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6044),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6252),
                             CreatedBy = 1,
                             Name = "Can use the export data feature"
                         },
                         new
                         {
                             Id = 5,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6045),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6252),
                             CreatedBy = 1,
                             Name = "Can use the view or edit data feature"
                         },
                         new
                         {
                             Id = 6,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6045),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6253),
                             CreatedBy = 1,
                             Name = "Can use the update data feature"
                         },
                         new
                         {
                             Id = 7,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6046),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6253),
                             CreatedBy = 1,
                             Name = "Can add new team"
                         },
                         new
                         {
                             Id = 8,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6047),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6254),
                             CreatedBy = 1,
                             Name = "Can add new privilege"
                         },
                         new
                         {
                             Id = 9,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6047),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6255),
                             CreatedBy = 1,
                             Name = "Can change team name"
                         },
                         new
                         {
                             Id = 10,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6048),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6255),
                             CreatedBy = 1,
                             Name = "Can view teams"
                         },
                         new
                         {
                             Id = 11,
-                            Created = new DateTime(2022, 9, 28, 0, 34, 56, 455, DateTimeKind.Utc).AddTicks(6049),
+                            Created = new DateTime(2022, 9, 30, 13, 59, 58, 585, DateTimeKind.Utc).AddTicks(6256),
                             CreatedBy = 1,
                             Name = "Can add admin users to teams"
                         });
@@ -522,6 +546,10 @@ namespace BAT.api.Migrations
                     b.Property<DateTime>("DateActivated")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("HourActivated")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -529,6 +557,9 @@ namespace BAT.api.Migrations
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("WeekActivated")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -546,8 +577,8 @@ namespace BAT.api.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("CreatedBy")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()

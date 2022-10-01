@@ -184,7 +184,8 @@ namespace BAT.api.Services
                             DateUploaded = DateTime.UtcNow,
                             FileName = formFile.FileName,
                             FileType = fileExtension,
-                            DownloadUrl = filePath
+                            DownloadUrl = filePath,
+                            HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
                         };
 
                         _context.FileUploads.Add(fileUpload);

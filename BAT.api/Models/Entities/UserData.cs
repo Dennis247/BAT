@@ -12,6 +12,5 @@
         public DateTime Created { get; set; }
         public int CreatedBy { get; set; }
 
-
     }
 }

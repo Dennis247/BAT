@@ -69,5 +69,15 @@ namespace BAT.api.Controllers
             var response = _teamServices.GetTeamsWithUsersAndPriviledges(teamDetailsId);
             return Ok(response);
         }
+
+
+        [HttpGet("GetAllTeams")]
+        public IActionResult GetAllTeams()
+        {
+            var response = _teamServices.GetAllTeams();
+
+            return Ok(response);
+        }
+
     }
 }

@@ -20,13 +20,25 @@ public class AccountsController : BaseController
     }
 
     [AllowAnonymous]
-    [HttpPost("Authenticate")]
-    public IActionResult Authenticate(AuthenticateRequest model)
+    [HttpPost("PrivateAuthenticate")]
+    public IActionResult PrivateAuthenticate(AuthenticateRequest model)
     {
         var response = _accountService.Authenticate(model, ipAddress());
         setTokenCookie(response.Data.RefreshToken);
         return Ok(response);
     }
+
+
+    //[AllowAnonymous]
+    //[HttpPost("AuthenticatePrivateAdmin")]
+    //public IActionResult AuthenticatePrivateAdmin(AuthenticateRequest model)
+    //{
+    //    var response = _accountService.AuthenticatePrivateAdmin(model, ipAddress());
+    //    setTokenCookie(response.Data.RefreshToken);
+    //    return Ok(response);
+    //}
+
+
 
     [AllowAnonymous]
     [HttpPost("PublicAuthenticate")]
@@ -50,10 +62,19 @@ public class AccountsController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost("RegisterAdmin")]
-    public IActionResult Register(RegisterRequest model)
+    [HttpPost("RegisterPublicAdmin")]
+    public IActionResult RegisterPublicAdmin(RegisterRequest model)
     {
         var response = _accountService.Register(model, Request.Headers["origin"]);
+        return Ok(response);
+    }
+
+
+    [AllowAnonymous]
+    [HttpPost("RegisterPrivateAdmin")]
+    public IActionResult RegisterPrivateAdmin(RegisterRequest model)
+    {
+        var response = _accountService.RegisterPrivateAdmin(model, Request.Headers["origin"]);
         return Ok(response);
     }
 
@@ -98,7 +119,41 @@ public class AccountsController : BaseController
     }
 
 
-    
+    [HttpPost("RevokeAdminInvite")]
+    public IActionResult RevokeAdminInvite(RevokeAdminRequest model)
+    {
+        var response = _accountService.RevokeInvite(model);
+        return Ok(response);
+    }
+
+
+
+    //[HttpPost("DeleteAdmin")]
+    //public IActionResult DeleteAdmin(DeleteAdminRequest model)
+    //{
+    //    var response = _accountService.DeleteAdmin(model);
+    //    return Ok(response);
+    //}
+
+
+
+    [HttpPost("GetPendingAdminActivation")]
+    public IActionResult GetPendingAdminActivation()
+    {
+        var response = _accountService.PendingActivationRequest();
+        return Ok(response);
+    }
+
+
+
+    [HttpPost("DeleteAdmin")]
+    public IActionResult DeleteAdmin(DeleteAdminRequest model)
+    {
+        var response = _accountService.DeleteAdmin(model);
+        return Ok(response);
+    }
+
+
 
     [AllowAnonymous]
     [HttpPost("RefreshToken")]
@@ -120,7 +175,7 @@ public class AccountsController : BaseController
             return BadRequest(new { message = "Token is required" });
 
         // users can revoke their own tokens and admins can revoke any tokens
-        if (!Account.OwnsToken(token) && Account.Role != Role.Admin)
+        if (!Account.OwnsToken(token) && Account.Role != ROLES.Admin)
             return Unauthorized(new { message = "Unauthorized" });
 
         _accountService.RevokeToken(token, ipAddress());
@@ -140,7 +195,7 @@ public class AccountsController : BaseController
 
 
  
-    [Authorize(Role.Admin)]
+  //  [Authorize(ROLES.Admin)]
     [HttpGet]
     public ActionResult<IEnumerable<AccountResponse>> GetAll()
     {
@@ -148,16 +203,15 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
- /*   [HttpGet("{id:int}")]
-    public IActionResult GetById(int id)
+    [AllowAnonymous]
+    [HttpGet("GetAccountById")]
+    public IActionResult GetAccountById(int id)
     {
         // users can get their own account and admins can get any account
-        if (id != Account.Id && Account.Role != Role.Admin)
-            return Unauthorized(new { message = "Unauthorized" });
 
         var response = _accountService.GetById(id);
         return Ok(response);
-    }*/
+    }
 
     //[Authorize(Role.Admin)]
     //[HttpPost]

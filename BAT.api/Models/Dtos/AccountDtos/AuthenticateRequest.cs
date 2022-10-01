@@ -30,3 +30,12 @@ public class PublicAuthRequest
     public string Password { get; set; }
 }
 
+
+
+
+public class DeleteAdminRequest
+{
+    [Required]
+    public int AdminId { get; set; }
+
+}

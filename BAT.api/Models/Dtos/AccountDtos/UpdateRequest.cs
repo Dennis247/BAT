@@ -15,7 +15,6 @@ public class UpdateRequest
     public string FirstName { get; set; }
     public string LastName { get; set; }
 
-    [EnumDataType(typeof(Role))]
     public string Role
     {
         get => _role;

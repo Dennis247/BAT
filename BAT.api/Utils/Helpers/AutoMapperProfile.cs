@@ -45,6 +45,11 @@ public class AutoMapperProfile : Profile
 
         CreateMap<AddCandidateDto, Candidate>();
 
+        CreateMap<UpdateCandidateDto, Candidate>();
+        CreateMap<Candidate, UpdateCandidateDto>();
+
+
+
         CreateMap<PermissionDto, Permission>();
         CreateMap<Permission, PermissionDto>();
 
@@ -61,6 +66,16 @@ public class AutoMapperProfile : Profile
 
         CreateMap<UserData, UserImportlDataDto>();
         CreateMap<UserImportlDataDto, UserData>();
+
+
+
+        CreateMap<ProvisionedAdmin, ProvisonAdminRequest>();
+        CreateMap<ProvisonAdminRequest, ProvisionedAdmin>();
+
+
+        CreateMap<UserTeam, Team>();
+        CreateMap<Team, UserTeam>();
+
 
 
 

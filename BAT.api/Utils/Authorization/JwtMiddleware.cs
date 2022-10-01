@@ -25,6 +25,20 @@ public class JwtMiddleware
         {
             // attach account to context on successful jwt validation
             context.Items["Account"] = await dataContext.Accounts.FindAsync(accountId.Value);
+
+            //get all user permissions and attach them
+            var alluserTeams = dataContext.AdminTeams.Where(x => x.AdminId == accountId.Value);
+            if (alluserTeams.Any())
+            {
+                var allTeamIds = alluserTeams.Select(x => x.Id);
+                //get all permissions for the team
+                var allUserTeamPermissions = dataContext.TeamPermissions.Where(x=> allTeamIds.Contains(x.TeamId)).Select(x=>x.PermissionId).ToList();
+              
+                var allPermissions =  dataContext.Permissions.Where(x=> allUserTeamPermissions.Contains(x.Id)).ToList();
+
+                context.Items["AccountPermissions"] = allPermissions;
+
+            }
         }
 
         await _next(context);

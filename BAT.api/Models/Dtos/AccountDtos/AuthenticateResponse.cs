@@ -1,6 +1,6 @@
 namespace BAT.api.Models.Dtos.AccountDtos;
 
-
+using BAT.api.Models.Dtos.TeamDtos;
 using System.Text.Json.Serialization;
 
 public class AuthenticateResponse
@@ -12,6 +12,9 @@ public class AuthenticateResponse
      public string Email { get; set; }
     public string Username { get; set; }
     public string Role { get; set; }
+
+    public List<UserTeam> Teams { get; set; }
+    public List<PermissionDtos.PermissionDto> UserPermissions { get; set; }
     public DateTime Created { get; set; }
     public DateTime? Updated { get; set; }
     public bool IsVerified { get; set; }
@@ -21,4 +24,7 @@ public class AuthenticateResponse
 
     [JsonIgnore] // refresh token is returned in http only cookie
     public string RefreshToken { get; set; }
+
+
+
 }

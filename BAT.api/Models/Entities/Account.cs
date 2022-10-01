@@ -13,7 +13,7 @@ public class Account
     public string Username { get; set; }
     public string SecretAnswer { get; set; }
     public string PasswordHash { get; set; }
-    public Role Role { get; set; }
+    public string Role { get; set; }
     public string VerificationToken { get; set; }
     public DateTime? Verified { get; set; }
     public bool IsVerified => Verified.HasValue || PasswordReset.HasValue;
@@ -28,9 +28,12 @@ public class Account
     public DateTime LastTimeLoggedIn { get; set; }
     public DateTime LoggedOutTime { get; set; }
 
+    public bool IsAdminPrivate { get; set; }
+
     public bool OwnsToken(string token)
     {
         return RefreshTokens?.Find(x => x.Token == token) != null;
     }
+
 
 }

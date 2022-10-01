@@ -9,10 +9,16 @@ namespace BAT.api.Utils.Filters
     {
         public int PageNumber { get; set; }
         public int PageSize { get; set; }
+        public string sortBy { get; set; }
+        public string filterBy { get; set; }
         public PaginationFilter()
         {
             PageNumber = 1;
             PageSize = 10;
+            sortBy = "";
+            filterBy = "";
+
+
         }
         public PaginationFilter(int pageNumber, int pageSize)
         {

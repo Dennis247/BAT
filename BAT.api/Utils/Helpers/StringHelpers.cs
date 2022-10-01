@@ -6,5 +6,18 @@
         {
             return (value1.ToLower().Trim() == value2.ToLower().Trim());
         }
+
+
+        public static string getHourActivated(int Hour)
+        {
+            if (Hour >= 0 && Hour < 12)
+            {
+                return $"{Hour} AM";
+            }
+
+            var result = Hour % 12;
+            return $"{result} PM";
+        }
+
     }
 }

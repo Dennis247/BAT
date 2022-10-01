@@ -1,4 +1,5 @@
 ﻿using BAT.api.Models.Entities;
+using BAT.api.Models.enums;
 using BAT.api.Utils.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,7 +47,7 @@ namespace BAT.api.Data
                      LastTimeLoggedIn = DateTime.UtcNow,
                      LoggedOutTime = DateTime.UtcNow,
                      PasswordHash = SecureTextHasher.Hash("Nappyboy@247"),
-                     Role =Models.enums.Role.SuperAdmin,
+                     Role = ROLES.SuperAdmin,
                      SecretAnswer = new  EncryptionHelper("xUL5gUkY5Gq%j@VR", "S2rgj6U*ydY+hMWx").AESEncrypt("Nappyboy@247"),
                      VerificationToken = ""
                  }

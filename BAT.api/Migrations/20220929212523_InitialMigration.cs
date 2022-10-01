@@ -18,9 +18,10 @@ namespace BAT.api.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SecretAnswer = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     VerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Verified = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -100,11 +101,34 @@ namespace BAT.api.Migrations
                     WorkExperinece = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Achievements = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedBy = table.Column<int>(type: "int", nullable: false),
-                    Created = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Created = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CandidateImage = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Candidates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FileUploads",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DateUploaded = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FileType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DownloadUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UploadedBy = table.Column<int>(type: "int", nullable: false),
+                    FileUploadType = table.Column<int>(type: "int", nullable: false),
+                    IsMerged = table.Column<bool>(type: "bit", nullable: false),
+                    MergedBy = table.Column<int>(type: "int", nullable: true),
+                    DateMerged = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    MergedIds = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FileUploads", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -174,6 +198,41 @@ namespace BAT.api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserActivations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DateActivated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserActivations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserDatas",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    State = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Location = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileId = table.Column<int>(type: "int", nullable: false),
+                    Created = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserDatas", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RefreshToken",
                 columns: table => new
                 {
@@ -202,25 +261,25 @@ namespace BAT.api.Migrations
 
             migrationBuilder.InsertData(
                 table: "Accounts",
-                columns: new[] { "Id", "Created", "Email", "FirstName", "IsOnline", "LastName", "LastTimeLoggedIn", "LoggedOutTime", "PasswordHash", "PasswordReset", "ResetToken", "ResetTokenExpires", "Role", "SecretAnswer", "Updated", "VerificationToken", "Verified" },
-                values: new object[] { 1, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3657), "batAdmin@gmail.com", "Dennis", true, "Osagiede", new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3661), new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3662), "$HASH|V1$10000$BqWZ0joi4Xr62HVDgVhMbt8tG5L4lMSwnnBuDmrL26Yt6Kt2", null, null, null, 2, "TnVUfh67W2LTbJemuDoCQQ==", null, "", null });
+                columns: new[] { "Id", "Created", "Email", "FirstName", "IsOnline", "LastName", "LastTimeLoggedIn", "LoggedOutTime", "PasswordHash", "PasswordReset", "ResetToken", "ResetTokenExpires", "Role", "SecretAnswer", "Updated", "Username", "VerificationToken", "Verified" },
+                values: new object[] { 1, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9602), "batAdmin@gmail.com", "Dennis", true, "Osagiede", new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9603), new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9604), "$HASH|V1$10000$xnKMiCToXLOtLNZ0ynexKUoIVN/oyO/hbxfK5ATUyjuVgk8n", null, null, null, "SuperAdmin", "TnVUfh67W2LTbJemuDoCQQ==", null, "mustang247", "", null });
 
             migrationBuilder.InsertData(
                 table: "Permissions",
                 columns: new[] { "Id", "Created", "CreatedBy", "Name" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3393), 1, "Can use upload data feature" },
-                    { 2, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3397), 1, "Can use the process data feature" },
-                    { 3, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3399), 1, "Can use the analyze data feature" },
-                    { 4, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3401), 1, "Can use the export data feature" },
-                    { 5, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3402), 1, "Can use the view or edit data feature" },
-                    { 6, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3404), 1, "Can use the update data feature" },
-                    { 7, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3406), 1, "Can add new team" },
-                    { 8, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3407), 1, "Can add new privilege" },
-                    { 9, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3409), 1, "Can change team name" },
-                    { 10, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3411), 1, "Can view teams" },
-                    { 11, new DateTime(2022, 9, 24, 14, 5, 46, 857, DateTimeKind.Utc).AddTicks(3413), 1, "Can add admin users to teams" }
+                    { 1, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9486), 1, "Can use upload data feature" },
+                    { 2, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9489), 1, "Can use the process data feature" },
+                    { 3, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9490), 1, "Can use the analyze data feature" },
+                    { 4, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9490), 1, "Can use the export data feature" },
+                    { 5, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9491), 1, "Can use the view or edit data feature" },
+                    { 6, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9492), 1, "Can use the update data feature" },
+                    { 7, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9492), 1, "Can add new team" },
+                    { 8, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9493), 1, "Can add new privilege" },
+                    { 9, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9494), 1, "Can change team name" },
+                    { 10, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9495), 1, "Can view teams" },
+                    { 11, new DateTime(2022, 9, 29, 21, 25, 23, 402, DateTimeKind.Utc).AddTicks(9495), 1, "Can add admin users to teams" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -241,6 +300,9 @@ namespace BAT.api.Migrations
                 name: "Candidates");
 
             migrationBuilder.DropTable(
+                name: "FileUploads");
+
+            migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
@@ -254,6 +316,12 @@ namespace BAT.api.Migrations
 
             migrationBuilder.DropTable(
                 name: "Teams");
+
+            migrationBuilder.DropTable(
+                name: "UserActivations");
+
+            migrationBuilder.DropTable(
+                name: "UserDatas");
 
             migrationBuilder.DropTable(
                 name: "Accounts");

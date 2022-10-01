@@ -28,7 +28,32 @@
   <ItemGroup>
     <Folder Include="AppUploads\CandidatesImage\" />
     <Folder Include="AppUploads\UserData\" />
+    <Folder Include="wwwroot\" />
     <Folder Include="Wrappers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AppUploads\CandidatesImage\Demom_Twoj.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\CandidatesImage\Demo_Two.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\CandidatesImage\OSAGIEDE_Two.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UserData\MergedNow.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UserData\MergedNow.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UserData\xxMergedNow.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UserData\xxTestData.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 

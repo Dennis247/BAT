@@ -16,7 +16,6 @@ public class CreateRequest
     public string LastName { get; set; }
 
     [Required]
-    [EnumDataType(typeof(Role))]
     public string Role { get; set; }
 
     [Required]
@@ -42,3 +41,16 @@ public class ProvisonAdminRequest
     public int TeamId { get; set; }
 
 }
+
+
+
+
+public class RevokeAdminRequest
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; }
+
+
+}
+

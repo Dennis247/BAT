@@ -23,9 +23,9 @@ namespace BAT.api.Controllers
 
 
         [HttpPost("UploadUserData")]
-        public IActionResult UploadUserData(IFormFile model)
+        public IActionResult UploadUserData(IFormFile file)
         {
-            var response = _fileUploadService.UploadUserData(model, Account.Id);
+            var response = _fileUploadService.UploadUserData(file, Account.Id);
             return Ok(response);
         }
 

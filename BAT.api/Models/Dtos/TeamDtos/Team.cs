@@ -72,4 +72,19 @@ namespace BAT.api.Models.Dtos.TeamDtos
         public List<PermissionDto> Priviledges { get; set; }
 
     }
+
+    public class UserTeam
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+   
+
+    }
+
+    public class UserTeamWithPriviledges
+    {
+        public UserTeam UserTeams { get; set; }
+        public List<PermissionDto> Priviledges { get; set; }
+    }
+
 }

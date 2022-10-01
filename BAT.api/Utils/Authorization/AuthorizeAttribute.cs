@@ -10,12 +10,16 @@ using Microsoft.AspNetCore.Mvc.Filters;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class AuthorizeAttribute : Attribute, IAuthorizationFilter
 {
-    private readonly IList<Role> _roles;
+    private readonly IList<string> _permissions;
+   
 
-    public AuthorizeAttribute(params Role[] roles)
+    public AuthorizeAttribute(params string[] permissions)
     {
-        _roles = roles ?? new Role[] { };
+        permissions = permissions== null ? new string[] { } : permissions;
+        _permissions = permissions ?? new string[] { };
     }
+
+
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
@@ -26,7 +30,18 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
 
         // authorization
         var account = (Account)context.HttpContext.Items["Account"];
-        if (account == null || (_roles.Any() && !_roles.Contains(account.Role)))
+        List<string> permissions = new List<string>();
+        if(account != null)
+        {
+            var allPerm = (List<Permission>)context.HttpContext.Items["AccountPermissions"];
+             permissions = allPerm == null ? new List<string>() : allPerm.Select(x=>x.Name).ToList();
+            if (permissions != null) { permissions.Add(account.Role); }
+
+        }
+
+
+
+        if (account == null || _permissions.Intersect(permissions).Any())
         {
             // not logged in or role not authorized
             context.Result = new JsonResult(new Response<string>
@@ -38,4 +53,7 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
             { StatusCode = StatusCodes.Status401Unauthorized };
         }
     }
+
+
+  
 }

@@ -9,4 +9,7 @@ public abstract class BaseController : ControllerBase
 {
     // returns the current authenticated account (null if not logged in)
     public Account Account => (Account)HttpContext.Items["Account"];
+    public List<Permission> AccountPermissions => (List<Permission>)HttpContext.Items["AccountPermissions"];
+
+
 }

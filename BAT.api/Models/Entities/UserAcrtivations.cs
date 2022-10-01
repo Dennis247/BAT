@@ -1,4 +1,6 @@
-﻿namespace BAT.api.Models.Entities
+﻿using System.Globalization;
+
+namespace BAT.api.Models.Entities
 {
     public class UserActivation
     {
@@ -6,5 +8,32 @@
         public string Name { get; set; }
         public string PhoneNumber { get; set; }
         public DateTime DateActivated { get; set; }
+        public string HourActivated { get; set; }
+       public int WeekActivated { get; set; }
+       
+    }
+
+
+    public class UserActivationDashBoardParameter
+    {
+        public DateTime startDate { get; set; } 
+        public DateTime endDate { get; set; }
+      
+    }
+
+
+    public class UserActivationDashBoard
+    {
+        public List<UserActivationGraph> userActivationGraph { get; set; }
+        public int TodayCount { get; set; }
+        public int ThisWeek { get; set; }
+        public int ThisMonth {get;set;}
+
+    }
+
+    public class UserActivationGraph
+    {
+        public string Time { get; set; }
+        public int UserCount { get; set; }
     }
 }

@@ -10,6 +10,7 @@ namespace BAT.api.Models.Entities
         public string FileType { get; set; }
         public string DownloadUrl { get; set; } 
         public int UploadedBy { get; set; }
+        public  string HourUploaded { get; set; }
         public FileUploadType FileUploadType { get; set; }
 
 
@@ -18,6 +19,14 @@ namespace BAT.api.Models.Entities
         public int? MergedBy { get; set; }
         public DateTime? DateMerged { get; set; }
         public string? MergedIds { get; set; }
+
+
+        // processed details
+        public bool IsProcessed { get; set; }
+        public int? ProcessedBy { get; set; }
+        public DateTime? DateProcessed { get; set; }
+        public string? ProcessedIds { get; set; }
+        public string HourMerged { get; set; }
 
     }
 

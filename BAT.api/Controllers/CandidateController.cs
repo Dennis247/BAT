@@ -18,19 +18,46 @@ namespace BAT.api.Controllers
             _candidateService = candidateService;
         }
 
-
+        [AllowAnonymous]
         [HttpGet("GetAllCandidates")]
-        public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter)
+        public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter, int UserId)
         {
             var route = Request.Path.Value;
-            var response = _candidateService.GetAllCandidates(filter,route);
+            var response = _candidateService.GetAllCandidates(filter, UserId,route);
             return Ok(response);
         }
 
+        [AllowAnonymous]
         [HttpPost("AddCandidate")]
-        public IActionResult AddCandidate([FromForm]AddCandidateDto candidateDto)
+        public IActionResult AddCandidate([FromBody]AddCandidateDto candidateDto)
         {
             var response = _candidateService.AddCandidate(candidateDto,Account.Id);
+            return Ok(response);
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet("GetCandidate")]
+        public IActionResult GetCandidate(int Id)
+        {
+            var response = _candidateService.GetCandidate(Id);
+            return Ok(response);
+        }
+
+
+        [HttpPost("DeleteCandidate")]
+        public IActionResult DeleteCandidate(DeleteCandidateDto deleteCandidateDto)
+        {
+            //Todo track in audit trail
+            var response = _candidateService.DeleteCandidate(deleteCandidateDto.Id);
+            return Ok(response);
+        }
+
+        [HttpPost("EditCandidate")]
+        public IActionResult EditCandidate(UpdateCandidateDto candidateDto)
+        {
+            //Todo track in audit trail
+            var response = _candidateService.EditCandidate(candidateDto,Account.Id);
             return Ok(response);
         }
 
