@@ -408,24 +408,29 @@ namespace BAT.api.Services
                         DataTable table = new DataTable();
                         table.TableName = "UserDatas";
 
+                        table.Columns.Add("Id", typeof(int));
 
-                  
                         table.Columns.Add("FirstName", typeof(string));
                         table.Columns.Add("LastName", typeof(string));
-                        table.Columns.Add("PhoneNumber", typeof(string));
-                        table.Columns.Add("State", typeof(string));
-                        table.Columns.Add("Gender", typeof(string));
                         table.Columns.Add("Email", typeof(string));
+                        table.Columns.Add("State", typeof(string));
+                        table.Columns.Add("PhoneNumber", typeof(string));
+                        table.Columns.Add("FileId", typeof(int));
+                        table.Columns.Add("Created", typeof(DateTime));
+
+                        table.Columns.Add("CreatedBy", typeof(int));
+
+                        table.Columns.Add("Gender", typeof(string));
+                   
                         table.Columns.Add("Others", typeof(string));
 
                         //int
-                        table.Columns.Add("Id", typeof(int));
-                        table.Columns.Add("FileId", typeof(int));
-                        table.Columns.Add("CreatedBy", typeof(int));
+                    
+             
 
 
                         //dateTime
-                        table.Columns.Add("Created", typeof(DateTime));
+                   
 
 
                         foreach (var userData in userDataToSave)
