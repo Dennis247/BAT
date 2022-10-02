@@ -591,6 +591,7 @@ public class AccountService : IAccountService
         if(isAlreadProvisioned != null)
         {
             //resend the mail invite
+            SendProvisonEmail(model.Email);
             return new Response<string>
             {
                 Data = null,
@@ -605,13 +606,8 @@ public class AccountService : IAccountService
         if (isExistingAdmin != null)
         {
             //resend the mail invite
-            return new Response<string>
-            {
-                Data = null,
-                Message = "Admin already exist.",
-                Succeeded = false
 
-            };
+            throw new AppException("Admin already exist");
         }
 
         //validate the team Admin is being added to
@@ -623,6 +619,7 @@ public class AccountService : IAccountService
 
 
         //go ahead and provison the admin
+        SendProvisonEmail(model.Email);
 
         var pAdmin = new ProvisionedAdmin
         {
@@ -762,7 +759,9 @@ public class AccountService : IAccountService
     private string generateResetToken()
     {
         // token is a cryptographically strong random sequence of values
-        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+        //  var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+
+        var token = new Random().Next(0,999999).ToString();
 
         // ensure token is unique by checking against db
         var tokenIsUnique = !_context.Accounts.Any(x => x.ResetToken == token);
@@ -841,12 +840,16 @@ public class AccountService : IAccountService
                             <p><code>{account.VerificationToken}</code></p>";
         }
 
-        _emailService.Send(
-            to: account.Email,
-            subject: "Sign-up Verification API - Verify Email",
-            html: $@"<h4>Verify Email</h4>
+        _emailService.SendEmailWithSendGrid(
+            new Message
+            {To = new List<string> { account.Email },
+            Subject = "BAT - Verify Email",
+            HtmlContent = $@"<h4>Verify Email</h4>
                         <p>Thanks for registering!</p>
                         {message}"
+            }
+
+         
         );
     }
 
@@ -867,12 +870,32 @@ public class AccountService : IAccountService
                             <p><code>{account.ResetToken}</code></p>";
         }
 
-        _emailService.Send(
-            to: account.Email,
-            subject: "Sign-up Verification API - Reset Password",
-            html: $@"<h4>Reset Password Email</h4>
+   
+
+        _emailService.SendEmailWithSendGrid(new Message
+        {
+            To = new List<string> { account.Email },
+            Subject = "BAT - Reset Password",
+            HtmlContent = $@"<h4>Reset Password Email</h4>
                         {message}"
-        );
+        });
+    }
+
+    private void SendProvisonEmail(string email)
+    {
+        string message;
+
+            var resetUrl = $"";
+            message = $@"<p>You have been provisoned on the BAT platform, Go to the website and complete your registration.</p>
+                            <p><a href=""{resetUrl}"">BAT</a></p>";
+       
+
+        _emailService.SendEmailWithSendGrid(new Message
+        {
+            To = new List<string> { email },
+            Subject = "BAT - New Admin",
+            HtmlContent = message
+        });
     }
 
     public Response<string> RevokeInvite(RevokeAdminRequest model)

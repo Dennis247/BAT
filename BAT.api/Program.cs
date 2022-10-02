@@ -2,6 +2,7 @@ using BAT.api.Authorization;
 using BAT.api.Data;
 using BAT.api.Helpers;
 using BAT.api.Services;
+using BAT.api.Utils.Helpers;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -38,6 +39,10 @@ builder.Services.AddTransient<IFileUploadService, FileUploadService>();
 
 // configure strongly typed settings object
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.Configure<EmailConfiguration>(builder.Configuration.GetSection("EmailConfiguration"));
+
+
+
 
 builder.Services.AddControllers().AddJsonOptions(x =>
 {

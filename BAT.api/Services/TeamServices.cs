@@ -6,6 +6,7 @@ using BAT.api.Models.Dtos.PermissionDtos;
 using BAT.api.Models.Dtos.TeamDtos;
 using BAT.api.Models.Entities;
 using BAT.api.Models.Response;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace BAT.api.Services
@@ -13,7 +14,8 @@ namespace BAT.api.Services
     public interface ITeamServices
     {
         Response<string> AddAdminToTeam(AddAdminToTeam addAdminToTeam,int AddedBy);
-        public Response<int> AddTeam(AddTeam addTeam, int AdminId);
+        Response<int> AddTeam(AddTeam addTeam, int AdminId);
+        Response<string> DeleteTeam(int Id);
         Response<List<TeamDetails>> GetAllTeams();
         Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<string> UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission, int AdminId);
@@ -250,6 +252,38 @@ namespace BAT.api.Services
                 Message = "sucessfull",
                 Succeeded = true
             };
+        }
+
+        public Response<string> DeleteTeam(int Id)
+        {
+           var existingTeam = _context.Teams.AsNoTracking().FirstOrDefault(x => x.Id == Id);
+            if(existingTeam == null)
+                throw new KeyNotFoundException("Team not found");
+
+
+            //delete all team permissions
+            var allTeamsPermissions = _context.TeamPermissions.Where(x => x.TeamId == Id);
+
+            //delete all userTeams
+            var allUserTeams = _context.AdminTeams.Where(x=>x.TeamId == Id);
+
+            _context.RemoveRange(allUserTeams);
+            _context.RemoveRange(allTeamsPermissions);
+
+            _context.SaveChanges();
+
+            
+
+            _context.Remove(existingTeam);
+            _context.SaveChanges();
+
+            return new Response<string>
+            {
+                Data = "",
+                Message = "Team deleted sucessful",
+                Succeeded = true
+            };
+            
         }
     }
 }

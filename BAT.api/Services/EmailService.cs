@@ -1,65 +1,62 @@
-namespace BAT.api.Services;
-
-using BAT.api.Helpers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using MailKit.Net.Smtp;
-using MailKit.Security;
-using Microsoft.Extensions.Options;
 using MimeKit;
-using MimeKit.Text;
+using System.IO;
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using BAT.api.Utils.Helpers;
+using Microsoft.Extensions.Options;
 
-
-public interface IEmailService
+namespace BAT.api.Services
 {
-    void Send(string to, string subject, string html, string from = null);
-}
-
-public class EmailService : IEmailService
-{
-    private readonly AppSettings _appSettings;
-
-    public EmailService(IOptions<AppSettings> appSettings)
+    public interface IEmailService
     {
-        _appSettings = appSettings.Value;
-    }
 
-    /* public void Send(string to, string subject, string html, string from = null)
-     {
-         // create message
-         var email = new MimeMessage();
-         email.From.Add(MailboxAddress.Parse(from ?? _appSettings.EmailFrom));
-         email.To.Add(MailboxAddress.Parse(to));
-         email.Subject = subject;
-         email.Body = new TextPart(TextFormat.Html) { Text = html };
+        Task<bool> SendEmailWithSendGrid(Message message);
 
-         // send email
-         using var smtp = new SmtpClient();
-         smtp.Connect(_appSettings.SmtpHost, _appSettings.SmtpPort, SecureSocketOptions.StartTls);
-         smtp.Authenticate(_appSettings.SmtpUser, _appSettings.SmtpPass);
-         smtp.Send(email);
-         smtp.Disconnect(true);
-
-
-     }*/
-
-    public void Send(string to, string subject, string html, string from = null)
-    {
-        var client = new SendGridClient("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");
-
-        var fromx = new EmailAddress("Iyenova2@gmail.com", "Iyenova");
-        List<EmailAddress> recipients = new List<EmailAddress>();
-
-
-        recipients.Add(new EmailAddress { Email = to });
-
-
-
-        var bodyMsg = MailHelper.CreateSingleEmailToMultipleRecipients(fromx, recipients, subject, html, html);
-
-        var result = client.SendEmailAsync(bodyMsg).Result;
-        Console.WriteLine(result);
 
     }
 
+    public class EmailService : IEmailService
+    {
+        private readonly EmailConfiguration _emailConfig;
+
+        public EmailService(IOptions<EmailConfiguration> emailConfig)
+        {
+            _emailConfig = emailConfig.Value;
+      
+        }
+
+
+        public async Task<bool> SendEmailWithSendGrid(Message message)
+        {
+            var client = new SendGridClient(_emailConfig.SendGridKey);
+            var from = new EmailAddress(_emailConfig.From, _emailConfig.Name);
+            List<EmailAddress> recipients = new List<EmailAddress>();
+
+            foreach (var item in message.To)
+            {
+                recipients.Add(new EmailAddress { Email = item });
+            }
+
+
+            var bodyMsg = MailHelper.CreateSingleEmailToMultipleRecipients(from, recipients, message.Subject, message.PlainContent, message.HtmlContent);
+
+            var response = await client.SendEmailAsync(bodyMsg);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            return false;
+        }
+
+
+
+    }
 }
+
+

@@ -29,7 +29,7 @@ namespace BAT.api.Controllers
         }
 
 
-   
+        [AllowAnonymous]
         [HttpGet("GetAllTeams")]
         public IActionResult GetAllTeams()
         {
@@ -71,10 +71,10 @@ namespace BAT.api.Controllers
         }
 
 
-        [HttpGet("GetAllTeams")]
-        public IActionResult GetAllTeams()
+        [HttpPost("DeleteTeam")]
+        public IActionResult DeleteTeam(TeamDetailsId teamDetailsId)
         {
-            var response = _teamServices.GetAllTeams();
+            var response = _teamServices.DeleteTeam(teamDetailsId.TeamId);
 
             return Ok(response);
         }
