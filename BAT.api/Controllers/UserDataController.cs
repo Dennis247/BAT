@@ -1,4 +1,5 @@
 ﻿using BAT.api.Authorization;
+using BAT.api.Models.Dtos.UserData;
 using BAT.api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

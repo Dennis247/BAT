@@ -19,6 +19,7 @@ namespace BAT.api.Models.Entities
         public int? MergedBy { get; set; }
         public DateTime? DateMerged { get; set; }
         public string? MergedIds { get; set; }
+        public string? HourMerged { get; set; } 
 
 
         // processed details
@@ -26,8 +27,14 @@ namespace BAT.api.Models.Entities
         public int? ProcessedBy { get; set; }
         public DateTime? DateProcessed { get; set; }
         public string? ProcessedIds { get; set; }
-        public string HourMerged { get; set; }
+        public string? HourProcessed { get; set; }
 
+
+        //preview Details
+        public bool IsInPreviewMode { get; set; }   
+
+        public DateTime? DateSaved { get; set; }
+    
     }
 
     

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BAT.api.Data;
 using BAT.api.Helpers;
+using BAT.api.Models.Dtos.UserData;
 using BAT.api.Models.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;

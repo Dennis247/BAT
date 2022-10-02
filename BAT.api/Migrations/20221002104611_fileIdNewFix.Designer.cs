@@ -4,6 +4,7 @@ using BAT.api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BAT.api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221002104611_fileIdNewFix")]
+    partial class fileIdNewFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,15 +102,15 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2368),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7543),
                             Email = "batAdmin@gmail.com",
                             FirstName = "Dennis",
                             IsAdminPrivate = false,
                             IsOnline = true,
                             LastName = "Osagiede",
-                            LastTimeLoggedIn = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2370),
-                            LoggedOutTime = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2371),
-                            PasswordHash = "$HASH|V1$10000$AIWdlaS7mU4yDD9seEFyKsrRjy8j9jgyGc7CAysJoCLi4t1L",
+                            LastTimeLoggedIn = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7544),
+                            LoggedOutTime = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7544),
+                            PasswordHash = "$HASH|V1$10000$ZUrZRUWbxxAC+p690fIBwzyiy11QUulKu/o0YCOY9bJNNita",
                             Role = "SuperAdmin",
                             SecretAnswer = "TnVUfh67W2LTbJemuDoCQQ==",
                             Username = "mustang247",
@@ -299,9 +301,6 @@ namespace BAT.api.Migrations
                     b.Property<DateTime?>("DateProcessed")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateSaved")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime>("DateUploaded")
                         .HasColumnType("datetime2");
 
@@ -329,9 +328,6 @@ namespace BAT.api.Migrations
                     b.Property<string>("HourUploaded")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsInPreviewMode")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("IsMerged")
                         .HasColumnType("bit");
@@ -385,77 +381,77 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2109),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7432),
                             CreatedBy = 1,
                             Name = "Can use upload data feature"
                         },
                         new
                         {
                             Id = 2,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2112),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7434),
                             CreatedBy = 1,
                             Name = "Can use the process data feature"
                         },
                         new
                         {
                             Id = 3,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2114),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7435),
                             CreatedBy = 1,
                             Name = "Can use the analyze data feature"
                         },
                         new
                         {
                             Id = 4,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2115),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7435),
                             CreatedBy = 1,
                             Name = "Can use the export data feature"
                         },
                         new
                         {
                             Id = 5,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2116),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7436),
                             CreatedBy = 1,
                             Name = "Can use the view or edit data feature"
                         },
                         new
                         {
                             Id = 6,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2117),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7436),
                             CreatedBy = 1,
                             Name = "Can use the update data feature"
                         },
                         new
                         {
                             Id = 7,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2119),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7437),
                             CreatedBy = 1,
                             Name = "Can add new team"
                         },
                         new
                         {
                             Id = 8,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2120),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7438),
                             CreatedBy = 1,
                             Name = "Can add new privilege"
                         },
                         new
                         {
                             Id = 9,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2121),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7442),
                             CreatedBy = 1,
                             Name = "Can change team name"
                         },
                         new
                         {
                             Id = 10,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2122),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7443),
                             CreatedBy = 1,
                             Name = "Can view teams"
                         },
                         new
                         {
                             Id = 11,
-                            Created = new DateTime(2022, 10, 2, 14, 2, 44, 496, DateTimeKind.Utc).AddTicks(2124),
+                            Created = new DateTime(2022, 10, 2, 10, 46, 11, 7, DateTimeKind.Utc).AddTicks(7444),
                             CreatedBy = 1,
                             Name = "Can add admin users to teams"
                         });
@@ -586,34 +582,41 @@ namespace BAT.api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<DateTime?>("Created")
+                    b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CreatedBy")
+                    b.Property<int>("CreatedBy")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("FileId")
+                    b.Property<int>("FileId")
                         .HasColumnType("int");
 
                     b.Property<string>("FirstName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Gender")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Others")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");

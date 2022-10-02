@@ -22,12 +22,12 @@ namespace BAT.api.Controllers
 
 
 
-        [HttpPost("UploadUserData")]
-        public IActionResult UploadUserData(IFormFile file)
-        {
-            var response = _fileUploadService.UploadUserData(file, Account.Id);
-            return Ok(response);
-        }
+        //[HttpPost("UploadUserData")]
+        //public IActionResult UploadUserData(IFormFile file)
+        //{
+        //    var response = _fileUploadService.UploadUserData(file, Account.Id);
+        //    return Ok(response);
+        //}
 
 
         [HttpPost("GetUserUploads")]
@@ -39,7 +39,7 @@ namespace BAT.api.Controllers
         }
 
         [HttpPost("ViewUserUploads")]
-        public IActionResult ViewUserUploads([FromBody]ViewFileId fileId , [FromQuery]PaginationFilter filter)
+        public IActionResult ViewUserUploads([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
             var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
@@ -47,13 +47,13 @@ namespace BAT.api.Controllers
         }
 
 
-        [HttpPost("MergeUserData")]
-        public IActionResult MergeUserData(MergeUserDataDto mergeUserDataDto)
-        {
-            var route = Request.Path.Value;
-            var response = _fileUploadService.MergeUserData(mergeUserDataDto, Account.Id);
-            return Ok(response);
-        }
+        //[HttpPost("MergeUserData")]
+        //public IActionResult MergeUserData(MergeUserDataDto mergeUserDataDto)
+        //{
+        //    var route = Request.Path.Value;
+        //    var response = _fileUploadService.MergeUserData(mergeUserDataDto, Account.Id);
+        //    return Ok(response);
+        //}
 
 
 
