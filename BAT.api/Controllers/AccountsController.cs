@@ -29,16 +29,6 @@ public class AccountsController : BaseController
     }
 
 
-    //[AllowAnonymous]
-    //[HttpPost("AuthenticatePrivateAdmin")]
-    //public IActionResult AuthenticatePrivateAdmin(AuthenticateRequest model)
-    //{
-    //    var response = _accountService.AuthenticatePrivateAdmin(model, ipAddress());
-    //    setTokenCookie(response.Data.RefreshToken);
-    //    return Ok(response);
-    //}
-
-
 
     [AllowAnonymous]
     [HttpPost("PublicAuthenticate")]
@@ -85,7 +75,7 @@ public class AccountsController : BaseController
     [HttpPost("ForgotPassword")]
     public IActionResult ForgotPassword(ForgotPasswordRequest model)
     {
-        var response = _accountService.ForgotPassword(model, Request.Headers["origin"]);
+        var response = _accountService.ForgotPassword(model);
         return Ok(response);
     }
 
@@ -125,15 +115,6 @@ public class AccountsController : BaseController
         var response = _accountService.RevokeInvite(model);
         return Ok(response);
     }
-
-
-
-    //[HttpPost("DeleteAdmin")]
-    //public IActionResult DeleteAdmin(DeleteAdminRequest model)
-    //{
-    //    var response = _accountService.DeleteAdmin(model);
-    //    return Ok(response);
-    //}
 
 
 
@@ -191,17 +172,37 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
- 
 
 
- 
-  //  [Authorize(ROLES.Admin)]
+    [AllowAnonymous]
     [HttpGet]
     public ActionResult<IEnumerable<AccountResponse>> GetAll()
     {
         var response = _accountService.GetAll();
         return Ok(response);
     }
+
+
+
+    [AllowAnonymous]
+    [HttpGet("GetPublicAdmin")]
+    public ActionResult<IEnumerable<AccountResponse>> GetPublicAdmin()
+    {
+        var response = _accountService.GetPublicAdmin();
+        return Ok(response);
+    }
+
+
+    [AllowAnonymous]
+    [HttpGet("GetPrivateAdmin")]
+    public ActionResult<IEnumerable<AccountResponse>> GetPrivateAdmin()
+    {
+        var response = _accountService.GetPrivateAdmin();
+        return Ok(response);
+    }
+
+
+
 
     [AllowAnonymous]
     [HttpGet("GetAccountById")]
@@ -213,31 +214,7 @@ public class AccountsController : BaseController
         return Ok(response);
     }
 
-    //[Authorize(Role.Admin)]
-    //[HttpPost]
-    //public ActionResult<AccountResponse> Create(CreateRequest model)
-    //{
-    //    var account = _accountService.Create(model);
-    //    return Ok(account);
-    //}
-
-    //[HttpPut("{id:int}")]
-    //public IActionResult Update(int id, UpdateRequest model)
-    //{
-    //    // users can update their own account and admins can update any account
-    //    if (id != Account.Id && Account.Role != Role.Admin)
-    //        return Unauthorized(new { message = "Unauthorized" });
-
-    //    // only admins can update role
-    //    if (Account.Role != Role.Admin)
-    //        model.Role = null;
-
-    //    var account = _accountService.Update(id, model);
-    //    return Ok(account);
-    //}
-
-
-
+   
     private void setTokenCookie(string token)
     {
         var cookieOptions = new CookieOptions

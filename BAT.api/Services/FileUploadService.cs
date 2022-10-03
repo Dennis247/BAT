@@ -23,7 +23,7 @@ namespace BAT.api.Services
 {
     public interface IFileUploadService
     {
-        PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route);
+        PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
         Response<string> UploadUserData(IFormFile formFile, int AdminId);
         PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
         Response<string> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
@@ -32,7 +32,7 @@ namespace BAT.api.Services
 
         Response<string> PreviewFile(IFormFile formFile, int AdminId);
 
-        PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, int AdminId, string route);
+        PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, Account account, string route);
 
         Response<string> SavePreviewedFile(int FileId);
 
@@ -61,13 +61,25 @@ namespace BAT.api.Services
             _context = context;
         }
 
-        public PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route)
+        public PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            var pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode)
-               .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-               .Take(validFilter.PageSize)
-               .ToList();
+            var pagedData = new List<FileUpload>();  
+            if (account.Role == ROLES.SuperAdmin)
+            {
+                 pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode)
+          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+          .Take(validFilter.PageSize)
+          .ToList();
+            }
+            else
+            {
+                 pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && x.UploadedBy == account.Id)
+          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+          .Take(validFilter.PageSize)
+          .ToList();
+            }
+       
             var totalRecords = _context.FileUploads.Count();
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
 
@@ -487,14 +499,27 @@ namespace BAT.api.Services
 
         }
 
-        public PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter,int AdminId, string route)
+        public PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter,Account Account, string route)
         {
+            var pagedData = new List<FileUpload>();
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            var pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData 
-            && x.IsInPreviewMode == true && x.UploadedBy == AdminId)
-               .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-               .Take(validFilter.PageSize)
-               .ToList();
+            if(Account.Role == ROLES.SuperAdmin)
+            {
+                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData
+      && x.IsInPreviewMode == true)
+         .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+         .Take(validFilter.PageSize)
+         .ToList();
+            }
+            else
+            {
+                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData
+      && x.IsInPreviewMode == true && x.UploadedBy == Account.Id)
+         .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+         .Take(validFilter.PageSize)
+         .ToList();
+            }
+       
             var totalRecords = _context.FileUploads.Count();
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
 

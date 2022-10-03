@@ -11,13 +11,14 @@ namespace BAT.api.Utils.Filters
         public int PageSize { get; set; }
         public string sortBy { get; set; }
         public string filterBy { get; set; }
+        public string sortOrder { get; set; }
         public PaginationFilter()
         {
             PageNumber = 1;
             PageSize = 10;
             sortBy = "";
             filterBy = "";
-
+            sortOrder = "";
 
         }
         public PaginationFilter(int pageNumber, int pageSize)

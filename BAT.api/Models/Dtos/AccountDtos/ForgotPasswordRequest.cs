@@ -12,6 +12,8 @@ public class ForgotPasswordRequest
 
     [Required]
     public string SecretAnswer { get; set; }
+    [Required]
+    public string ResetPasswordUrl { get; set; }   
 }
 
 

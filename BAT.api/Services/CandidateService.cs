@@ -47,6 +47,9 @@ namespace BAT.api.Services
         public Response<int> AddCandidate(AddCandidateDto candidateDto, int AdminId)
         {
             //check if candidate has been added before
+
+            candidateDto.AreaRepresenting = candidateDto.AreaRepresenting == null ? "" : candidateDto.AreaRepresenting;
+
             var existingCandidate = _context.Candidates.FirstOrDefault(
                 x => x.FirstName.ToLower().Trim() == candidateDto.FirstName.ToLower().Trim()
             && x.LastName.ToLower().Trim() == candidateDto.LastName.Trim().ToLower()
@@ -62,7 +65,7 @@ namespace BAT.api.Services
 
             //upload image first 
             string imagePath = "";
-            if (candidateDto.CandidateImageUpload != null)
+            if (candidateDto.CandidateImage != null)
             {
                 var folderName = Path.Combine("AppUploads", "CandidatesImage");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -71,8 +74,17 @@ namespace BAT.api.Services
                 imagePath = Path.Combine(folderName, fileName);
                 imagePath = imagePath.Replace("\\", "//");
 
-                var bytes = Convert.FromBase64String(candidateDto.CandidateImageUpload);
-                File.WriteAllBytes(fullPath, bytes);
+                try
+                {
+                    var bytes = Convert.FromBase64String(candidateDto.CandidateImage);
+                    File.WriteAllBytes(fullPath, bytes);
+                }
+                catch (Exception)
+                {
+
+                  
+                }
+      
             }
 
             var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
@@ -109,14 +121,42 @@ namespace BAT.api.Services
 
         public Response<CandidateDto> EditCandidate(UpdateCandidateDto candidateDto, int AdminId)
         {
-            var existingCandidate = _context.Candidates.AsNoTracking().FirstOrDefault(c => c.Id == candidateDto.Id);
+            var existingCandidate = _context.Candidates.Find(candidateDto.Id);
             if (existingCandidate == null)
                 throw new KeyNotFoundException("Candidate does not exist");
 
-            existingCandidate = _mapper.Map<Candidate>(candidateDto);
-            existingCandidate.LastTimeModified = DateTime.Now;
-            existingCandidate.MoidifiedBy = AdminId;
-            _context.Update(existingCandidate);
+            var dataToSave = _mapper.Map<Candidate>(candidateDto);
+            dataToSave.LastTimeModified = DateTime.Now;
+            dataToSave.MoidifiedBy = AdminId;
+            dataToSave.Created = existingCandidate.Created;
+            dataToSave.CreatedBy = existingCandidate.CreatedBy;
+
+
+            //upload image first 
+            string imagePath = "";
+            if (candidateDto.CandidateImage != null && candidateDto.CandidateImage !="")
+            {
+                var folderName = Path.Combine("AppUploads", "CandidatesImage");
+                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+                var fileName = $"{candidateDto.FirstName}_{candidateDto.LastName}.png";
+                var fullPath = Path.Combine(pathToSave, fileName);
+                imagePath = Path.Combine(folderName, fileName);
+                imagePath = imagePath.Replace("\\", "//");
+
+                try
+                {
+                    var bytes = Convert.FromBase64String(candidateDto.CandidateImage);
+                    File.WriteAllBytes(fullPath, bytes);
+                }
+                catch (Exception)
+                {
+
+
+                }
+
+            }
+
+            _context.Entry(existingCandidate).CurrentValues.SetValues(dataToSave);
             _context.SaveChanges();
 
             var caniddateToResturn = _mapper.Map<CandidateDto>(existingCandidate);
@@ -139,22 +179,49 @@ namespace BAT.api.Services
 
             if (filter.sortBy == "" || filter.sortBy.ToLower() == "firstname")
             {
-                pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).OrderBy(x => x.FirstName).ToList();
+                if (filter.sortOrder == "desc")
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).OrderByDescending(x => x.FirstName).ToList();
+                }
+                else
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).OrderBy(x => x.FirstName).ToList();
+                }
+
+             
             }
             else if (filter.sortBy.ToLower() == "lastname")
             {
-                pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-                .Take(validFilter.PageSize).OrderBy(x => x.LastName).ToList();
+                if (filter.sortOrder == "desc")
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize)
+                        .OrderByDescending(x => x.LastName).ToList();
+
+                }
+                else
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).
+                        OrderBy(x => x.LastName).ToList();
+                }
+
             }
 
             else if (filter.sortBy.ToLower() == "state")
             {
-                pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-                 .Take(validFilter.PageSize).OrderBy(x => x.State).ToList();
+                if (filter.sortOrder == "desc")
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                  .Take(validFilter.PageSize).OrderByDescending(x => x.State).ToList();
+                }
+                else
+                {
+                    pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                  .Take(validFilter.PageSize).OrderBy(x => x.State).ToList();
+                }
             }
 
 
-            if (filter.filterBy != null)
+            if (filter.filterBy != null && filter.filterBy != "")
             {
                 pagedData = pagedData.Where(x => x.FirstName.ToLower().Contains(filter.filterBy)
                 || x.FirstName.ToLower().Contains(filter.filterBy)
@@ -165,6 +232,10 @@ namespace BAT.api.Services
                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy)
                 ).ToList();
             }
+
+
+           
+         
 
             var totalRecords = _context.Candidates.Count();
             var candidateToReturn = _mapper.Map<List<CandidateDto>>(pagedData);

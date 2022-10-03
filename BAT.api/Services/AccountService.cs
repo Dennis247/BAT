@@ -28,7 +28,7 @@ public interface IAccountService
     Response<int> Register(RegisterRequest model, string origin);
     Response<int> RegisterPrivateAdmin(RegisterRequest model, string origin);
     Response<string> LogOut(int AdminId);
-    Response<string> ForgotPassword(ForgotPasswordRequest model, string origin);
+    Response<string> ForgotPassword(ForgotPasswordRequest model);
      Response<string> ResetSecretAnswer(ResetSecretAnswer model);
     Response<IEnumerable<AccountResponse>> GetAll();
     Response<AccountResponse> GetById(int id);
@@ -41,6 +41,11 @@ public interface IAccountService
     Response<string> RevokeInvite(RevokeAdminRequest model);
     Response<List<ProvisonAdminRequest>> PendingActivationRequest();
     Response<string> DeleteAdmin(DeleteAdminRequest deleteAdminRequest);
+
+
+    Response<IEnumerable<AccountResponse>> GetPrivateAdmin();
+
+    Response<IEnumerable<AccountResponse>> GetPublicAdmin();
 }
 
 
@@ -358,10 +363,10 @@ public class AccountService : IAccountService
         }
 
         //check if this Admin has been provisoned before they can register
-        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
+        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email && !x.IsPrivateAdmin) ;
         if(hasAdminBeenProvisoned == null)
         {
-            throw new KeyNotFoundException("Your profile has not been provisoned by an Admin.");
+            throw new KeyNotFoundException("Your profile has not been provisoned as a Public Admin.");
         }
 
         // check if user already exist using first name , last name and password
@@ -386,6 +391,7 @@ public class AccountService : IAccountService
         // hash password & sceurity answer
         account.PasswordHash = SecureTextHasher.Hash(model.Password);
         account.SecretAnswer = secretHash;
+        account.IsAdminPrivate = false;
 
 
         hasAdminBeenProvisoned.HasCompletedRegistration = true;
@@ -444,10 +450,10 @@ public class AccountService : IAccountService
         }
 
         //check if this Admin has been provisoned before they can register
-        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
+        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email && x.IsPrivateAdmin );
         if (hasAdminBeenProvisoned == null)
         {
-            throw new KeyNotFoundException("Your profile has not been provisoned by an Admin.");
+            throw new KeyNotFoundException("Your profile has not been provisoned as a Private Admin.");
         }
 
         // check if user already exist using first name , last name and password
@@ -531,7 +537,7 @@ public class AccountService : IAccountService
 
     }
 
-    public Response<string> ForgotPassword(ForgotPasswordRequest model, string origin)
+    public Response<string> ForgotPassword(ForgotPasswordRequest model)
     {
         var secretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
         var account = _context.Accounts.SingleOrDefault(x => x.SecretAnswer == secretAnswer);
@@ -553,7 +559,7 @@ public class AccountService : IAccountService
         _context.SaveChanges();
 
         // send email
-        sendPasswordResetEmail(account, origin);
+        sendPasswordResetEmail(account, $"{model.ResetPasswordUrl}?token={account.ResetToken}");
 
         return new Response<string>
         {
@@ -591,7 +597,7 @@ public class AccountService : IAccountService
         if(isAlreadProvisioned != null)
         {
             //resend the mail invite
-            SendProvisonEmail(model.Email);
+            SendProvisonEmail(model.Email, model.RegistrationUrl);
             return new Response<string>
             {
                 Data = null,
@@ -619,7 +625,7 @@ public class AccountService : IAccountService
 
 
         //go ahead and provison the admin
-        SendProvisonEmail(model.Email);
+        SendProvisonEmail(model.Email, model.RegistrationUrl);
 
         var pAdmin = new ProvisionedAdmin
         {
@@ -646,6 +652,30 @@ public class AccountService : IAccountService
     public Response<IEnumerable<AccountResponse>> GetAll()
     {
         var accounts = _context.Accounts;
+        var users = _mapper.Map<IList<AccountResponse>>(accounts);
+        return new Response<IEnumerable<AccountResponse>>
+        {
+            Succeeded = true,
+            Message = "Sucessful",
+            Data = users
+        };
+    }
+
+    public Response<IEnumerable<AccountResponse>> GetPrivateAdmin()
+    {
+        var accounts = _context.Accounts.Where(x=>x.IsAdminPrivate);
+        var users = _mapper.Map<IList<AccountResponse>>(accounts);
+        return new Response<IEnumerable<AccountResponse>>
+        {
+            Succeeded = true,
+            Message = "Sucessful",
+            Data = users
+        };
+    }
+
+    public Response<IEnumerable<AccountResponse>> GetPublicAdmin()
+    {
+        var accounts = _context.Accounts.Where(x => !x.IsAdminPrivate);
         var users = _mapper.Map<IList<AccountResponse>>(accounts);
         return new Response<IEnumerable<AccountResponse>>
         {
@@ -855,22 +885,13 @@ public class AccountService : IAccountService
 
 
 
-    private void sendPasswordResetEmail(Account account, string origin)
+    private void sendPasswordResetEmail(Account account, string resetUrl)
     {
         string message;
-        if (!string.IsNullOrEmpty(origin))
-        {
-            var resetUrl = $"{origin}/account/reset-password?userId={account.Id}&token={account.ResetToken}";
-            message = $@"<p>Please click the below link to reset your password, the link will be valid for 10 minutes:</p>
-                            <p><a href=""{resetUrl}"">{resetUrl}</a></p>";
-        }
-        else
-        {
-            message = $@"<p>Please use the below token to reset your password with the <code>/accounts/reset-password</code> api route:</p>
-                            <p><code>{account.ResetToken}</code></p>";
-        }
 
-   
+         
+            message = $@"<p>Please click the below link to reset your password, the link will be valid for 10 minutes:</p>
+                            <p><a href=""{resetUrl}"">Reset Password</a></p>";
 
         _emailService.SendEmailWithSendGrid(new Message
         {
@@ -881,13 +902,13 @@ public class AccountService : IAccountService
         });
     }
 
-    private void SendProvisonEmail(string email)
+    private void SendProvisonEmail(string email,string Url)
     {
         string message;
 
             var resetUrl = $"";
-            message = $@"<p>You have been provisoned on the BAT platform, Go to the website and complete your registration.</p>
-                            <p><a href=""{resetUrl}"">BAT</a></p>";
+            message = $@"<p>You have been provisoned on the BAT platform, Please click the link below to complete your registration.</p>
+                            <p><a href=""{Url}"">Click Here</a></p>";
        
 
         _emailService.SendEmailWithSendGrid(new Message
@@ -903,6 +924,9 @@ public class AccountService : IAccountService
        var existingInvite = _context.ProvisionedAdmins.FirstOrDefault(x=>x.Email == model.Email);
         if (existingInvite == null)
             throw new KeyNotFoundException("Request Not found");
+
+        _context.ProvisionedAdmins.Remove(existingInvite);
+        _context.SaveChanges();
         return new Response<string>
         {
             Data = "",
@@ -910,4 +934,6 @@ public class AccountService : IAccountService
             Succeeded = true
         };
     }
+
+  
 }

@@ -32,7 +32,7 @@ namespace BAT.api.Controllers
         public IActionResult GetUsersPreviewedFiles([FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
-            var response = _fileUploadService.GetUserPreviewedFiles(filter, Account.Id, route);
+            var response = _fileUploadService.GetUserPreviewedFiles(filter, Account, route);
             return Ok(response);
         }
 

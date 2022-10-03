@@ -27,7 +27,7 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
-        [AllowAnonymous]
+ 
         [HttpPost("AddCandidate")]
         public IActionResult AddCandidate([FromBody]AddCandidateDto candidateDto)
         {

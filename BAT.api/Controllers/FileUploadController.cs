@@ -34,7 +34,7 @@ namespace BAT.api.Controllers
         public IActionResult GetUserUploads([FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
-            var response = _fileUploadService.GetUserFileUploads(filter, route);
+            var response = _fileUploadService.GetUserFileUploads(filter, route, Account);
             return Ok(response);
         }
 

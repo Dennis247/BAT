@@ -40,6 +40,11 @@ public class ProvisonAdminRequest
     [Required]
     public int TeamId { get; set; }
 
+    public bool IsPrivateAdmin { get; set; }    
+    [Required]
+
+    public string RegistrationUrl { get; set; }
+
 }
 
 

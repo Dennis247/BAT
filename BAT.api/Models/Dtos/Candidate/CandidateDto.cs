@@ -14,7 +14,7 @@ namespace BAT.api.Models.Dtos.Candidate
         [Required]
         public string Position { get; set; }
 
-        public string AreaRepresenting { get; set; }
+        public string? AreaRepresenting { get; set; }
 
         [RegularExpression("^(?!0+$)(\\+\\d{1,3}[- ]?)?(?!0+$)\\d{10,15}$", ErrorMessage = "Please enter valid phone no.")]
         public string? WhatAppNumber { get; set; }
@@ -24,7 +24,7 @@ namespace BAT.api.Models.Dtos.Candidate
         public string? Education { get; set; }
         public string? WorkExperinece { get; set; }
         public string? Achievements { get; set; }
-        public string CandidateImageUpload { get; set; }  
+        public string? CandidateImage { get; set; }  
 
     }
 
@@ -74,18 +74,12 @@ namespace BAT.api.Models.Dtos.Candidate
         public string? Achievements { get; set; }
         public string? CandidateImage { get; set; }
 
-
     }
 
 
     public class DeleteCandidateDto
     {
-
         public int Id { get; set; }
-
-
-
-
     }
 
 
