@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Folder Include="AppUploads\CandidatesImage\" />
+    <Folder Include="AppUploads\UpdatedeUserData\" />
     <Folder Include="AppUploads\UserData\" />
     <Folder Include="wwwroot\" />
     <Folder Include="Wrappers\" />

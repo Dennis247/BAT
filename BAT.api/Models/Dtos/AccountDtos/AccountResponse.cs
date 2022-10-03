@@ -1,3 +1,5 @@
+using BAT.api.Models.Dtos.TeamDtos;
+
 namespace BAT.api.Models.Dtos.AccountDtos;
 
 public class AccountResponse
@@ -13,5 +15,8 @@ public class AccountResponse
     public DateTime? Updated { get; set; }
     public bool IsVerified { get; set; }
     public bool IsOnline { get; set; }
-    public DateTime LastTimeLoggedIn { get; set; }  
+    public DateTime LastTimeLoggedIn { get; set; }
+
+    public IEnumerable<int> Teams { get; set; }
+   // public List<PermissionDtos.PermissionDto> UserPermissions { get; set; }
 }

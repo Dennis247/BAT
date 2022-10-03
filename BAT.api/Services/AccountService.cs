@@ -665,6 +665,10 @@ public class AccountService : IAccountService
     {
         var accounts = _context.Accounts.Where(x=>x.IsAdminPrivate);
         var users = _mapper.Map<IList<AccountResponse>>(accounts);
+        foreach (var item in users)
+        {
+            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.AdminId);
+        }
         return new Response<IEnumerable<AccountResponse>>
         {
             Succeeded = true,
@@ -677,6 +681,10 @@ public class AccountService : IAccountService
     {
         var accounts = _context.Accounts.Where(x => !x.IsAdminPrivate);
         var users = _mapper.Map<IList<AccountResponse>>(accounts);
+        foreach (var item in users)
+        {
+            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.AdminId);
+        }
         return new Response<IEnumerable<AccountResponse>>
         {
             Succeeded = true,

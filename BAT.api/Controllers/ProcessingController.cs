@@ -10,17 +10,24 @@ namespace BAT.api.Controllers
     [Authorize]
     [ApiController]
     [Route("[controller]")]
-    public class FileUploadController : BaseController
+    public class ProcessingController : BaseController
     {
 
         private readonly IFileUploadService _fileUploadService;
 
-        public FileUploadController(IFileUploadService fileUploadService)
+        public ProcessingController(IFileUploadService fileUploadService)
         {
             _fileUploadService = fileUploadService;
         }
 
 
+
+        //[HttpPost("UploadUserData")]
+        //public IActionResult UploadUserData(IFormFile file)
+        //{
+        //    var response = _fileUploadService.UploadUserData(file, Account.Id);
+        //    return Ok(response);
+        //}
 
 
         [HttpPost("GetUserUploads")]
@@ -38,26 +45,6 @@ namespace BAT.api.Controllers
             var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
             return Ok(response);
         }
-
-
-        [HttpPost("DeleteFile")]
-        public IActionResult DeleteFile( ViewFileId fileId)
-        {
-            var route = Request.Path.Value;
-            var response = _fileUploadService.DeleteFile(fileId.FileId);
-            return Ok(response);
-        }
-
-
-
-
-        [HttpPost("UpdateFile")]
-        public IActionResult UpdateFile([FromForm] UpdateFile updateFile)
-        {
-            var response = _fileUploadService.UpdateFile(updateFile, Account.Id);
-            return Ok(response);
-        }
-
 
 
 
