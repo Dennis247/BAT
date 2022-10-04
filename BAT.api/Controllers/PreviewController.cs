@@ -52,6 +52,13 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
+        [HttpPost("DeletePreviewedFile")]
+        public IActionResult DeletePreviewedFile(ViewFileId fileId)
+        {
+            var response = _fileUploadService.DeleteFile(fileId.FileId);
+            return Ok(response);
+        }
+
 
     }
 }

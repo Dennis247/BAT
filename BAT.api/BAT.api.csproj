@@ -11,6 +11,7 @@
 	 <PackageReference Include="AutoMapper" Version="11.0.1" />
 	<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
 	<PackageReference Include="CsvHelper.Excel.Core" Version="27.2.1" />
+	<PackageReference Include="EFCore.BulkExtensions" Version="6.5.6" />
 	<PackageReference Include="SendGrid" Version="9.24.4" />
 	 <PackageReference Include="MailKit" Version="3.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.9" />
@@ -28,6 +29,7 @@
 
   <ItemGroup>
     <Folder Include="AppUploads\CandidatesImage\" />
+    <Folder Include="AppUploads\MergedData\" />
     <Folder Include="AppUploads\UpdatedeUserData\" />
     <Folder Include="AppUploads\UserData\" />
     <Folder Include="wwwroot\" />

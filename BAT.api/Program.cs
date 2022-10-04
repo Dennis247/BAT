@@ -30,6 +30,7 @@ builder.Services.AddTransient<ICandidateService, CandidateService>();
 builder.Services.AddTransient<IUserActivationServices, UserActivationServices>();
 builder.Services.AddTransient<IUserDataService, UserDataService>();
 builder.Services.AddTransient<IFileUploadService, FileUploadService>();
+builder.Services.AddTransient<IDapperDbConnection, DapperDbConnection>();
 
 
 

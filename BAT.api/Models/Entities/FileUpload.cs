@@ -11,6 +11,7 @@ namespace BAT.api.Models.Entities
         public string DownloadUrl { get; set; } 
         public int UploadedBy { get; set; }
         public  string HourUploaded { get; set; }
+        public long FileSize { get; set; }
         public FileUploadType FileUploadType { get; set; }
 
 
@@ -18,7 +19,7 @@ namespace BAT.api.Models.Entities
         public bool IsMerged { get; set; }
         public int? MergedBy { get; set; }
         public DateTime? DateMerged { get; set; }
-        public string? MergedIds { get; set; }
+        public string? MergedDetails { get; set; }
         public string? HourMerged { get; set; } 
 
 

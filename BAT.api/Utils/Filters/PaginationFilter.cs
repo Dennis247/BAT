@@ -24,7 +24,7 @@ namespace BAT.api.Utils.Filters
         public PaginationFilter(int pageNumber, int pageSize)
         {
             PageNumber = pageNumber < 1 ? 1 : pageNumber;
-            PageSize = pageSize > 10 ? 10 : pageSize;
+            PageSize = pageSize == 0 ? 10 :  pageSize;
         }
     }
 

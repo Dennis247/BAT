@@ -10,6 +10,7 @@ using BAT.api.Utils.Filters;
 using BAT.api.Utils.Helpers;
 using CsvHelper;
 using CsvHelper.Excel;
+using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -24,11 +25,10 @@ namespace BAT.api.Services
     public interface IFileUploadService
     {
         PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
-        Response<string> UploadUserData(IFormFile formFile, int AdminId);
         PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
-        Response<string> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
+        Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
 
-        Response<string> PreviewFile(IFormFile formFile, int AdminId);
+        Response<int> PreviewFile(IFormFile formFile, int AdminId);
 
         PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, Account account, string route);
 
@@ -50,19 +50,22 @@ namespace BAT.api.Services
         private readonly AppSettings _appSettings;
         private readonly IEmailService _emailService;
         private readonly IUriService _uriService;
+        private readonly IDapperDbConnection _dapperDbConnection;
 
         public FileUploadService(
              ApplicationDbContext context,
             IMapper mapper,
             IOptions<AppSettings> appSettings,
             IEmailService emailService,
-             IUriService uriService)
+             IUriService uriService,
+              IDapperDbConnection dapperDbConnection)
         {
             _mapper = mapper;
             _appSettings = appSettings.Value;
             _emailService = emailService;
             _uriService = uriService;
             _context = context;
+            _dapperDbConnection = dapperDbConnection;
         }
 
         public PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account)
@@ -93,7 +96,7 @@ namespace BAT.api.Services
 
         }
 
-        public Response<string> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId)
+        public async Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId)
         {
 
             //validate that the file ids for merging are valid
@@ -113,236 +116,66 @@ namespace BAT.api.Services
                 {
                     if (!item.Contains(item))
                     {
-                        throw new AppException("Selected Fields for merging must be present in Files selected for merging");     
+                        throw new AppException($"Selected Fields for merging must be present in Files selected for merging");     
                     }
                 }
             }
 
-
-
             //generate sql query for merge data
+            var sqlQuery = generateMergeQuery(mergeUserDataDto);
+
 
             //write the merge result into a file
+            var result = await _dapperDbConnection.QueryAsync<dynamic>("sqlQuery");
 
-            //create a merge upload for the file
+            string JsonList = JsonConvert.SerializeObject(result.ToList());
 
-            //write the merge result into a table
+            DataTable dt = JsonConvert.DeserializeObject<DataTable>(JsonList);
 
-
-          //  return sucessful result
-
-
-            
-
-
-            List<UserData> userDataMergeList = new List<UserData>();
-
-            var existingFiles = _context.FileUploads.Select(x => x.Id).ToList();
-            var fileTypes = new List<string>();
-            foreach (var item in mergeUserDataDto.FilesIds)
-            {
-                if (!existingFiles.Contains(item))
-                {
-                    throw new Exception("Merging operations contains an invalid file");
-                }
-
-                userDataMergeList.AddRange(_context.UserDatas.Where(x => x.FileId == item));
-
-                var file = _context.FileUploads.SingleOrDefault(x => x.Id == item);
-                fileTypes.Add(file.FileType);
-            }
-
-            var fileTypeCOunt = fileTypes.Distinct().Count();
-            if (fileTypeCOunt > 1)
-            {
-                throw new Exception("File Types must be distinct.");
-            }
-
-            //Tdod throw exeception if file type is not distinct
-
-            string fileType = fileTypes[0];
-            //write the merge list to a file --either excel or csv
-            var folderName = Path.Combine("AppUploads", "UserData");
+            var folderName = Path.Combine("AppUploads", "MergedData");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
-            var fileName = mergeUserDataDto.MergedFileName + fileType;
+            var fileName = mergeUserDataDto.MergedFileName + ".xlsx";
             var fullPath = Path.Combine(pathToSave, fileName);
             var filePath = Path.Combine(folderName, fileName);
             filePath = filePath.Replace("\\", "//");
-            using (var writer = new ExcelWriter(fullPath))
-            {
-                var dataToWrite = _mapper.Map<List<UserImportlDataDto>>(userDataMergeList);
-                writer.WriteRecords(dataToWrite);
-            }
 
-            //write merge data to the database
+            //write datatTable to excel
+            WriteToExcel(dt, fullPath);
+
+            //store merge file in upload table
 
             FileUpload fileUpload = new FileUpload
             {
-                FileName = fileName,
-                UploadedBy = AdminId,
-                DateUploaded = DateTime.Now,
+                DateMerged =  DateTime.UtcNow,
                 DownloadUrl = filePath,
-                FileType = fileType,
-                FileUploadType = FileUploadType.UserData,
+                FileSize = new FileInfo(fullPath).Length / (1024 * 1024),
+                UploadedBy = AdminId,
+                MergedDetails = JsonConvert.SerializeObject(mergeUserDataDto.MergeData),
+                DateUploaded = DateTime.UtcNow,
+                IsInPreviewMode = false,
+                FileUploadType = FileUploadType.MergedData,
                 IsMerged = true,
-                DateMerged = DateTime.Now,
                 MergedBy = AdminId,
-                MergedIds = JsonConvert.SerializeObject(mergeUserDataDto.FilesIds),
-
+                FileName = mergeUserDataDto.MergedFileName,
+                FileType = "xlsx",
+                DateSaved = DateTime.UtcNow,
+                
             };
+
             _context.FileUploads.Add(fileUpload);
             _context.SaveChanges();
-            return new Response<string>
+         
+
+            return new Response<int>
             {
                 Succeeded = true,
-                Data = "",
+                Data = fileUpload.Id,
                 Message = "Merge Sucessful"
             };
 
         }
 
-        public Response<string> UploadUserData(IFormFile formFile, int AdminId)
-        {
-            if (formFile == null || formFile.Length <= 0)
-            {
-                throw new AppException("File cannot be null or empty");
-            }
-
-            string fileExtension = Path.GetExtension(formFile.FileName);
-
-            if (fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
-                fileExtension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                //Todo upload large file to path and seed the file content to database
-
-                //check if file has already been uploaded 
-                var existingFIle = _context.FileUploads.FirstOrDefault(x => x.FileName == formFile.FileName);
-                if (existingFIle != null)
-                    throw new AppException("This file has already been uploaded");
-
-                var folderName = Path.Combine("AppUploads", "UserData");
-                var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
-
-                var fileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
-                var fullPath = Path.Combine(pathToSave, fileName);
-                var filePath = Path.Combine(folderName, fileName);
-                filePath = filePath.Replace("\\", "//");
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    formFile.CopyTo(stream);
-                }
-
-                _context.connection.Open();
-                using (var transaction = _context.connection.BeginTransaction())
-                {
-
-                    try
-                    {
-                        //           _context.Database.UseTransaction(transaction as DbTransaction);
-
-                        List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
-
-                        FileUpload fileUpload = new FileUpload
-                        {
-                            UploadedBy = AdminId,
-                            DateUploaded = DateTime.UtcNow,
-                            FileName = formFile.FileName,
-                            FileType = fileExtension,
-                            DownloadUrl = filePath,
-                            HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
-                        };
-
-                        _context.FileUploads.Add(fileUpload);
-                        _context.SaveChanges();
-
-                        if (fileExtension.ToLower() == ".csv")
-                        {
-                            //Todo read file from excel and bulk insert into db
-                            using (var reader2 = new StreamReader(fullPath))
-                            using (var csv = new CsvReader(reader2, CultureInfo.InvariantCulture))
-                            {
-                                userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
-                            }
-                        }
-                        else if (fileExtension.ToLower() == ".xlsx")
-                        {
-                            //Todo read file from excel and bulk insert into db
-                            using var reader = new CsvReader(new ExcelParser(fullPath));
-                            userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
-                        }
-
-
-
-
-                        DataTable table = new DataTable();
-                        table.TableName = "UserDatas";
-
-
-                        table.Columns.Add("Id", typeof(string));
-                        table.Columns.Add("FirstName", typeof(string));
-                        table.Columns.Add("LastName", typeof(string));
-                        table.Columns.Add("PhoneNumber", typeof(string));
-                        table.Columns.Add("State", typeof(string));
-                        table.Columns.Add("Gender", typeof(string));
-                        table.Columns.Add("Email", typeof(string));
-                        table.Columns.Add("Others", typeof(string));
-                        table.Columns.Add("FileId", typeof(int));
-                        table.Columns.Add("Created", typeof(DateTime));
-                        table.Columns.Add("CreatedBy", typeof(int));
-
-
-                        foreach (var userData in userDataToSave)
-                        {
-                            var row = table.NewRow();
-                            row["Id"] = 0;
-                            row[nameof(userData.FirstName)] = userData.FirstName;
-                            row[nameof(userData.LastName)] = userData.LastName;
-                            row[nameof(userData.PhoneNumber)] = userData.PhoneNumber;
-                            row[nameof(userData.State)] = userData.State;
-                            row[nameof(userData.Gender)] = userData.Gender;
-                            row[nameof(userData.Email)] = userData.Email;
-                            row[nameof(userData.Others)] = userData.Others;
-                            row["Created"] = DateTime.Now;
-                            row["CreatedBy"] = AdminId;
-                            row["FileId"] = fileUpload.Id;
-                            table.Rows.Add(row);
-                        }
-
-
-                        _context.BulkInsert(table);
-                        _context.SaveChanges();
-                        transaction.Commit();
-
-                    }
-                    catch (Exception ex)
-                    {
-                        transaction.Rollback();
-                        File.Delete(fullPath);
-                        throw new Exception(ex.ToString());
-                    }
-                    finally
-                    {
-                        _context.connection.Close();
-                    }
-
-                }
-
-
-                return new Response<string>
-                {
-                    Data = "",
-                    Message = "File Upload sucessfull",
-                    Succeeded = true,
-
-                };
-
-
-            }
-
-            throw new AppException("Only .xlsx and .csv format is supported");
-
-        }
-
+    
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route)
         {
             List<int> mergedids = new List<int>();
@@ -356,7 +189,8 @@ namespace BAT.api.Services
 
             if (userData.IsMerged)
             {
-                mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedIds));
+                //special case
+              //  mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
             }
 
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
@@ -388,14 +222,16 @@ namespace BAT.api.Services
 
         }
 
-        public Response<string> PreviewFile(IFormFile formFile, int AdminId)
+        public Response<int> PreviewFile(IFormFile formFile, int AdminId)
         {
             if (formFile == null || formFile.Length <= 0)
             {
                 throw new AppException("File cannot be null or empty");
             }
 
+
             string fileExtension = Path.GetExtension(formFile.FileName);
+            int fileId = 0;
 
             if (fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
                 fileExtension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
@@ -419,6 +255,8 @@ namespace BAT.api.Services
                     formFile.CopyTo(stream);
                 }
 
+                long fileSize = new FileInfo(fullPath).Length/ (1024 * 1024);
+
                 _context.connection.Open();
                 using (var transaction = _context.connection.BeginTransaction())
                 {
@@ -428,7 +266,6 @@ namespace BAT.api.Services
                         //           _context.Database.UseTransaction(transaction as DbTransaction);
 
                         List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
-
                         FileUpload fileUpload = new FileUpload
                         {
                             UploadedBy = AdminId,
@@ -438,10 +275,12 @@ namespace BAT.api.Services
                             DownloadUrl = filePath,
                             HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
                             IsInPreviewMode = true,
+                            FileSize = fileSize,
                         };
 
                         _context.FileUploads.Add(fileUpload);
                         _context.SaveChanges();
+                        fileId = fileUpload.Id;
 
                         if (fileExtension.ToLower() == ".csv")
                         {
@@ -459,56 +298,24 @@ namespace BAT.api.Services
                             userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
                         }
 
-
-                        DataTable table = new DataTable();
-                        table.TableName = "UserDatas";
-
-                        table.Columns.Add("Id", typeof(int));
-
-                        table.Columns.Add("FirstName", typeof(string));
-                        table.Columns.Add("LastName", typeof(string));
-                        table.Columns.Add("Email", typeof(string));
-                        table.Columns.Add("State", typeof(string));
-                        table.Columns.Add("PhoneNumber", typeof(string));
-                        table.Columns.Add("FileId", typeof(int));
-                        table.Columns.Add("Created", typeof(DateTime));
-
-                        table.Columns.Add("CreatedBy", typeof(int));
-
-                        table.Columns.Add("Gender", typeof(string));
-
-                        table.Columns.Add("Others", typeof(string));
-
-                        //int
-
-
-
-
-                        //dateTime
-
-
-
-                        foreach (var userData in userDataToSave)
+                        List<UserData> userDatas = new List<UserData>();
+                        foreach (var item in userDataToSave)
                         {
-                            var row = table.NewRow();
-
-                            row["Id"] = 0;
-                            row[nameof(userData.FirstName)] = userData.FirstName;
-                            row[nameof(userData.LastName)] = userData.LastName;
-                            row[nameof(userData.Email)] = userData.Email;
-                            row[nameof(userData.State)] = userData.State;
-                            row[nameof(userData.PhoneNumber)] = userData.PhoneNumber;
-                            row["FileId"] = fileUpload.Id;
-                            row["Created"] = DateTime.Now;
-                            row["CreatedBy"] = AdminId;
-                            row[nameof(userData.Gender)] = userData.Gender;
-                            row[nameof(userData.Others)] = userData.Others;
-
-                            table.Rows.Add(row);
+                            userDatas.Add(new UserData
+                            {
+                                Created = DateTime.UtcNow,
+                                CreatedBy = AdminId,
+                                Email = item.Email,
+                                FileId = fileUpload.Id,
+                                FirstName = item.FirstName,
+                                Gender = item.Gender,
+                                LastName = item.LastName,
+                                Others = item.Others,
+                                PhoneNumber = item.PhoneNumber,
+                                State = item.State,
+                            });
                         }
-
-
-                        _context.BulkInsert(table);
+                        _context.BulkInsertAsync(userDatas);
                         _context.SaveChanges();
                         transaction.Commit();
 
@@ -527,9 +334,9 @@ namespace BAT.api.Services
                 }
 
 
-                return new Response<string>
+                return new Response<int>
                 {
-                    Data = "",
+                    Data = fileId,
                     Message = "File Upload sucessfull",
                     Succeeded = true,
 
@@ -604,7 +411,7 @@ namespace BAT.api.Services
 
             if (userData.IsMerged)
             {
-                mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedIds));
+                mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
             }
 
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
@@ -647,7 +454,7 @@ namespace BAT.api.Services
             var allFileContents = _context.UserDatas.Where(x => x.FileId == FileId);
 
             _context.FileUploads.Remove(existingFile);
-            _context.UserDatas.RemoveRange(allFileContents);
+            _context.BulkDeleteAsync(allFileContents.ToList());
 
             _context.SaveChanges();
             return new Response<string>
@@ -660,8 +467,6 @@ namespace BAT.api.Services
 
         public Response<string> UpdateFile(UpdateFile updateFile, int AdminId)
         {
-
-
             var existingFile = _context.FileUploads.FirstOrDefault(x => x.Id == updateFile.FileId);
             if (existingFile == null)
                 throw new AppException("Inavlid file Id");
@@ -687,7 +492,30 @@ namespace BAT.api.Services
                     {
                         updateFile.FileContents.CopyTo(stream);
                     }
-                    if (fileExtension.ToLower() == ".csv")
+
+
+                    if (fileExtension.ToLower() == ".xlsx")
+                    {
+                        //Todo read file from excel and bulk insert into db
+                        using var reader = new CsvReader(new ExcelParser(fullPath));
+                        var headers = reader.HeaderRecord;
+                        //check if header of incoming file matches the user Data header
+                        if (!(headers[0] == "FirstName" &&
+                            headers[1] == "PhoneNumber" &&
+                            headers[2] == "State" &&
+                            headers[3] == "Gender" &&
+                            headers[4] == "Email" &&
+                            headers[5] == "Others"))
+                        {
+
+                            File.Delete(fullPath);
+                            throw new AppException("File for upload not properly formatted");
+                        }
+
+                    }
+
+
+                     if (fileExtension.ToLower() == ".csv")
                     {
                         //Todo read file from excel and bulk insert into db
                         using (var reader2 = new StreamReader(fullPath))
@@ -704,93 +532,115 @@ namespace BAT.api.Services
                             {
                                 throw new Exception("File for update not properly formatted");
                             }
-
-                            else if (fileExtension.ToLower() == ".xlsx")
-                            {
-                                //Todo read file from excel and bulk insert into db
-                                using var reader = new CsvReader(new ExcelParser(fullPath));
-                                var headers = reader.HeaderRecord;
-                                //check if header of incoming file matches the user Data header
-                                if (!(headers[0] == "FirstName" &&
-                                    headers[1] == "PhoneNumber" &&
-                                    headers[2] == "State" &&
-                                    headers[3] == "Gender" &&
-                                    headers[4] == "Email" &&
-                                    headers[5] == "Others"))
-                                {
-
-                                    File.Delete(fullPath);
-                                    throw new AppException("File for upload not properly formatted");
-                                }
-
-                                userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
-
-                                //create a datatable from the file and do a bulk insert
-                                DataTable table = new DataTable();
-                                table.TableName = "UserDatas";
-
-
-                                table.Columns.Add("Id", typeof(string));
-                                table.Columns.Add("FirstName", typeof(string));
-                                table.Columns.Add("LastName", typeof(string));
-                                table.Columns.Add("PhoneNumber", typeof(string));
-                                table.Columns.Add("State", typeof(string));
-                                table.Columns.Add("Gender", typeof(string));
-                                table.Columns.Add("Email", typeof(string));
-                                table.Columns.Add("Others", typeof(string));
-                                table.Columns.Add("FileId", typeof(int));
-                                table.Columns.Add("Created", typeof(DateTime));
-                                table.Columns.Add("CreatedBy", typeof(int));
-
-
-                                foreach (var userData in userDataToSave)
-                                {
-                                    var row = table.NewRow();
-                                    row["Id"] = 0;
-                                    row[nameof(userData.FirstName)] = userData.FirstName;
-                                    row[nameof(userData.LastName)] = userData.LastName;
-                                    row[nameof(userData.PhoneNumber)] = userData.PhoneNumber;
-                                    row[nameof(userData.State)] = userData.State;
-                                    row[nameof(userData.Gender)] = userData.Gender;
-                                    row[nameof(userData.Email)] = userData.Email;
-                                    row[nameof(userData.Others)] = userData.Others;
-                                    row["Created"] = DateTime.Now;
-                                    row["CreatedBy"] = AdminId;
-                                    row["FileId"] = existingFile.Id;
-                                    table.Rows.Add(row);
-                                }
-
-                                _context.BulkInsert(table);
-                                _context.SaveChanges();
-
-                            }
                         }
-
-
-                        return new Response<string>
-                        {
-                            Data = "",
-                            Message = "File Upload sucessfull",
-                            Succeeded = true,
-
-                        };
-
 
                     }
 
 
+                    List<UserData> userDatas = new List<UserData>();
+                    foreach (var item in userDataToSave)
+                    {
+                        userDatas.Add(new UserData
+                        {
+                            Created = DateTime.UtcNow,
+                            CreatedBy = AdminId,
+                            Email = item.Email,
+                            FileId = updateFile.FileId,
+                            FirstName = item.FirstName,
+                            Gender = item.Gender,
+                            LastName = item.LastName,
+                            Others = item.Others,
+                            PhoneNumber = item.PhoneNumber,
+                            State = item.State,
+                        });
+                    }
+                    _context.BulkInsertAsync(userDatas);
+                    _context.SaveChanges();
 
-                    throw new AppException("File not valid");
-
-
-
+                    return new Response<string>
+                    {
+                        Data = "",
+                        Message = "File Update sucessfull",
+                        Succeeded = true,
+                    };
 
                 }
            
-               throw new AppException("File COntents Cannot be empty");
+               throw new AppException("File Contents Cannot be empty");
             }
 
             throw new AppException("Only .csv and .xlsx files are allowed");
         }
+
+
+        //generate merge quety
+
+        string generateMergeQuery(MergeUserDataDto mergeUserDataDto)
+        {
+            string selectPart = "select ";
+
+            foreach (var item2 in mergeUserDataDto.MergeData)
+            {
+                var result = item2.TableName + "." + string.Join($", {item2.TableName}.", item2.TabeleFields);
+                selectPart += result + ",";
+
+            }
+
+
+            selectPart = $"{selectPart.TrimEnd(',')} FROM {mergeUserDataDto.MergeData[0].TableName}";
+
+            string InnerJoinPath = "";
+
+
+            for (int i = mergeUserDataDto.MergeData.Count - 1; i >= 0; i--)
+            {
+
+                if (i != 0)
+                {
+                    for (int j = 0; j < mergeUserDataDto.FieldsForMerging.Count; j++)
+                    {
+                        InnerJoinPath += $"INNER JOIN {mergeUserDataDto.MergeData[i].TableName} ON" +
+                            $" {mergeUserDataDto.MergeData[i].TableName}.{mergeUserDataDto.FieldsForMerging[j]} = {mergeUserDataDto.MergeData[i - 1].TableName}.{mergeUserDataDto.FieldsForMerging[j]},";
+                    }
+                }
+
+            }
+            InnerJoinPath = InnerJoinPath.Trim(',');
+
+
+            string orderBy = $"ORDER BY {mergeUserDataDto.MergeData[0].TableName}.{mergeUserDataDto.MergeData[0].TabeleFields[0]} ASC;";
+
+            string query = $"{selectPart} {InnerJoinPath} {orderBy}";
+
+            return query;
+
+        }
+
+
+        public void WriteToExcel(DataTable dt, string path)
+        {
+            //using (var writer = new StreamWriter(path))
+            using (var csv = new ExcelWriter(path, CultureInfo.InvariantCulture))
+
+            {
+                // Write columns
+                foreach (DataColumn column in dt.Columns)
+                {
+                    csv.WriteField(column.ColumnName);
+                }
+                csv.NextRecord();
+
+                // Write row values
+                foreach (DataRow row in dt.Rows)
+                {
+                    for (var i = 0; i < dt.Columns.Count; i++)
+                    {
+                        csv.WriteField(row[i]);
+                    }
+                    csv.NextRecord();
+                }
+            }
+        }
+
     }
  }

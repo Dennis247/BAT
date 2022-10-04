@@ -12,7 +12,9 @@ namespace BAT.api.Models.Dtos.FileUpload
             public int UploadedBy { get; set; }
             public string DownloadUrl { get; set; }
 
-           public FileUploadType fileUploadType { get; set; }
+        public long FileSize { get; set; }
+
+        public FileUploadType fileUploadType { get; set; }
 
         public string TableName
         {
@@ -38,7 +40,7 @@ namespace BAT.api.Models.Dtos.FileUpload
         {
             if(fileUploadType == FileUploadType.UserData)
             {
-                return new List<string> { "FirstName", "LastName", "PhoneNumber", "State", "Gender", "Email", "Others" };
+                return new List<string> { "firstName", "lastName", "phoneNumber", "state", "gender", "email", "others","fileId" };
             }
             return new List<string> { "" };
         }

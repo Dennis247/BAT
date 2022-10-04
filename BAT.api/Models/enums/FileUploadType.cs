@@ -3,6 +3,7 @@
     public enum FileUploadType
     {
         UserData,
+        MergedData
 
     }
 }

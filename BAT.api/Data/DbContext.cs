@@ -110,14 +110,14 @@ namespace BAT.api.Data
 
 
 
-        public void BulkInsert(DataTable table)
-        {
-            using (var bulkInsert = new SqlBulkCopy(connection.ConnectionString))
-            {
-                bulkInsert.DestinationTableName = table.TableName;
-                bulkInsert.WriteToServer(table);
-            }
-        }
+        //public void BulkInsert(DataTable table)
+        //{
+        //    using (var bulkInsert = new SqlBulkCopy(connection.ConnectionString))
+        //    {
+        //        bulkInsert.DestinationTableName = table.TableName;
+        //        bulkInsert.WriteToServer(table);
+        //    }
+        //}
 
     }
 

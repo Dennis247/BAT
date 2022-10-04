@@ -11,6 +11,7 @@
 
     public class MergeData
     {
+        public int FileId { get; set; }
         public string TableName { get; set; }
         public List<string> TabeleFields { get; set; }
     }
