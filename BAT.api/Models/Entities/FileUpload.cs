@@ -10,8 +10,14 @@ namespace BAT.api.Models.Entities
         public string FileType { get; set; }
         public string DownloadUrl { get; set; } 
         public int UploadedBy { get; set; }
-        public  string HourUploaded { get; set; }
-        public long FileSize { get; set; }
+        public  string? HourUploaded { get; set; }
+        public double FileSize { get; set; }
+
+        public string? Fields { get; set; }
+
+
+
+
         public FileUploadType FileUploadType { get; set; }
 
 

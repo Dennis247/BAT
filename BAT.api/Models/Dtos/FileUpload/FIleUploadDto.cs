@@ -5,55 +5,16 @@ namespace BAT.api.Models.Dtos.FileUpload
  
         public class FileUploadDto
     {
-            public int Id { get; set; }
-            public string FileName { get; set; }
-            public string DateUploaded { get; set; }
-            public string FileType { get; set; }
-            public int UploadedBy { get; set; }
-            public string DownloadUrl { get; set; }
+        public int Id { get; set; }
+        public string FileName { get; set; }
+        public DateTime DateUploaded { get; set; }
+        public string FileType { get; set; }
+        public string DownloadUrl { get; set; }
+        public int UploadedBy { get; set; }
+        public string HourUploaded { get; set; }
+        public double FileSize { get; set; }
 
-        public long FileSize { get; set; }
-
-        public FileUploadType fileUploadType { get; set; }
-
-        public string TableName
-        {
-            get
-            {
-                return getTableName();
-            }
-        }
-
-        public List<string> Fields
-        {
-            get
-            {
-                return getFileFIelds();
-            }
-        }
-
-
-        
-
-
-        public List<string> getFileFIelds()
-        {
-            if(fileUploadType == FileUploadType.UserData)
-            {
-                return new List<string> { "firstName", "lastName", "phoneNumber", "state", "gender", "email", "others","fileId" };
-            }
-            return new List<string> { "" };
-        }
-
-        public string getTableName()
-        {
-            if (fileUploadType == FileUploadType.UserData)
-            {
-                return "UserDatas";
-            }
-            return "";
-        }
-
+        public string Fields { get; set; }
     }
 
     public class ViewFileId

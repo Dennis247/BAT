@@ -3,26 +3,28 @@
     public class UserDataDto
     {
         public int Id { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string PhoneNumber { get; set; }
-        public string State { get; set; }
-        public string Gender { get; set; }
-        public string Email { get; set; }
-        public string Others { get; set; }
-        public int FileId { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? State { get; set; }
+        public string? Gender { get; set; }
+        public string? Email { get; set; }
+        public string? Age { get; set; }
+        public string? FileFields { get; set; }
+        public int? FileId { get; set; }
     }
 
 
     public class UserImportlDataDto
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string PhoneNumber { get; set; }
-        public string State { get; set; }
-        public string Gender { get; set; }
-        public string Email { get; set; }
-        public string Others { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? State { get; set; }
+        public string? Gender { get; set; }
+        public string? Email { get; set; }
+        public string? Age { get; set; }
+
 
     }
 

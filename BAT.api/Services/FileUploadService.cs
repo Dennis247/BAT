@@ -9,6 +9,7 @@ using BAT.api.Models.Response;
 using BAT.api.Utils.Filters;
 using BAT.api.Utils.Helpers;
 using CsvHelper;
+using CsvHelper.Configuration;
 using CsvHelper.Excel;
 using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Mvc;
@@ -229,6 +230,8 @@ namespace BAT.api.Services
                 throw new AppException("File cannot be null or empty");
             }
 
+            List<string> fileHeaders = new List<string>();
+            FileUpload fileUpload = new FileUpload();
 
             string fileExtension = Path.GetExtension(formFile.FileName);
             int fileId = 0;
@@ -240,8 +243,8 @@ namespace BAT.api.Services
 
                 //check if file has already been uploaded 
                 var existingFIle = _context.FileUploads.FirstOrDefault(x => x.FileName == formFile.FileName);
-                //if (existingFIle != null)
-                //    throw new AppException("This file has already been uploaded");
+                if (existingFIle != null)
+                    throw new AppException("This file has already been uploaded");
 
                 var folderName = Path.Combine("AppUploads", "UserData");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -255,18 +258,13 @@ namespace BAT.api.Services
                     formFile.CopyTo(stream);
                 }
 
-                long fileSize = new FileInfo(fullPath).Length/ (1024 * 1024);
-
-                _context.connection.Open();
-                using (var transaction = _context.connection.BeginTransaction())
-                {
+                double fileSize = (new FileInfo(fullPath).Length)/ (1000);
+                fileSize = Math.Round(fileSize, 2);
 
                     try
                     {
-                        //           _context.Database.UseTransaction(transaction as DbTransaction);
-
                         List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
-                        FileUpload fileUpload = new FileUpload
+                         fileUpload = new FileUpload
                         {
                             UploadedBy = AdminId,
                             DateUploaded = DateTime.UtcNow,
@@ -284,23 +282,63 @@ namespace BAT.api.Services
 
                         if (fileExtension.ToLower() == ".csv")
                         {
+                            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                            {
+                                HeaderValidated = null,
+                                MissingFieldFound = null
+                            };
                             //Todo read file from excel and bulk insert into db
                             using (var reader2 = new StreamReader(fullPath))
-                            using (var csv = new CsvReader(reader2, CultureInfo.InvariantCulture))
+                            using (var csv = new CsvReader(reader2, config))
                             {
+                              
                                 userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
+
+                                //validate that the headers from the upload are part of the defined columns in the database
+
+                                var headers = csv.HeaderRecord;
+                                foreach (var item in headers)
+                                {
+                                    fileHeaders.Add(item.ToLower());
+                                    if (Constants.Columns.Contains(item.ToLower()))
+                                    {
+                                        throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
+                                            $" {JsonConvert.SerializeObject(Constants.Columns)}");
+                                    }
+                                }
+
                             }
                         }
                         else if (fileExtension.ToLower() == ".xlsx")
                         {
+                            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                            {
+                                HeaderValidated = null,
+                                MissingFieldFound = null
+                            };
+
                             //Todo read file from excel and bulk insert into db
-                            using var reader = new CsvReader(new ExcelParser(fullPath));
+                            var parser = new ExcelParser(fullPath, "sheet1", config);
+                            
+                            using var reader = new CsvReader(parser);
                             userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+                            var headers = reader.HeaderRecord;
+
+                            foreach (var item in headers)
+                            {
+                                fileHeaders.Add(item.ToLower());
+                                if (!Constants.Columns.Contains(item.ToLower()))
+                                {
+                                    throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
+                                        $" {JsonConvert.SerializeObject(Constants.Columns)}");
+                                }
+                            }
                         }
 
                         List<UserData> userDatas = new List<UserData>();
                         foreach (var item in userDataToSave)
                         {
+
                             userDatas.Add(new UserData
                             {
                                 Created = DateTime.UtcNow,
@@ -310,29 +348,31 @@ namespace BAT.api.Services
                                 FirstName = item.FirstName,
                                 Gender = item.Gender,
                                 LastName = item.LastName,
-                                Others = item.Others,
                                 PhoneNumber = item.PhoneNumber,
                                 State = item.State,
+                                FileFields = JsonConvert.SerializeObject(fileHeaders),
+                                Age = item.Age,
                             });
                         }
+                        fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders); 
                         _context.BulkInsertAsync(userDatas);
                         _context.SaveChanges();
-                        transaction.Commit();
 
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
                         File.Delete(fullPath);
+                        if(fileUpload != null)
+                        {
+                            _context.FileUploads.Remove(fileUpload);
+                        }
+                     
                         throw new Exception(ex.ToString());
                     }
                     finally
                     {
                         _context.connection.Close();
                     }
-
-                }
-
 
                 return new Response<int>
                 {
@@ -453,10 +493,12 @@ namespace BAT.api.Services
 
             var allFileContents = _context.UserDatas.Where(x => x.FileId == FileId);
 
-            _context.FileUploads.Remove(existingFile);
-            _context.BulkDeleteAsync(allFileContents.ToList());
-
+             _context.FileUploads.Remove(existingFile);
+          
+            _context.RemoveRange(allFileContents.ToList());
             _context.SaveChanges();
+
+            //     
             return new Response<string>
             {
                 Data = "",
@@ -537,6 +579,7 @@ namespace BAT.api.Services
                     }
 
 
+                     //Todo update for file
                     List<UserData> userDatas = new List<UserData>();
                     foreach (var item in userDataToSave)
                     {
@@ -549,9 +592,10 @@ namespace BAT.api.Services
                             FirstName = item.FirstName,
                             Gender = item.Gender,
                             LastName = item.LastName,
-                            Others = item.Others,
                             PhoneNumber = item.PhoneNumber,
                             State = item.State,
+                            Age = item.Age,
+                           
                         });
                     }
                     _context.BulkInsertAsync(userDatas);
