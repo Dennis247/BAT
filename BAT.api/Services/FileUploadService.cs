@@ -38,8 +38,13 @@ namespace BAT.api.Services
         PagedResponse<List<UserDataDto>> ViewFileContents(int FileId, PaginationFilter filter, string route);
 
         Response<string> DeleteFile(int FileId);
-
         Response<string> UpdateFile(UpdateFile updateFile, int AdminId);
+
+        Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, int AdminId);
+
+
+        //Group by supplied fileds and return the total records for groups
+        Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId);
 
 
     }
@@ -149,7 +154,7 @@ namespace BAT.api.Services
             {
                 DateMerged =  DateTime.UtcNow,
                 DownloadUrl = filePath,
-                FileSize = new FileInfo(fullPath).Length / (1024 * 1024),
+                FileSize = StringHelpers.FileSize(fullPath),
                 UploadedBy = AdminId,
                 MergedDetails = JsonConvert.SerializeObject(mergeUserDataDto.MergeData),
                 DateUploaded = DateTime.UtcNow,
@@ -273,7 +278,8 @@ namespace BAT.api.Services
                             DownloadUrl = filePath,
                             HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
                             IsInPreviewMode = true,
-                            FileSize = fileSize,
+                            FileSize = StringHelpers.FileSize(fullPath),
+                         
                         };
 
                         _context.FileUploads.Add(fileUpload);
@@ -354,7 +360,8 @@ namespace BAT.api.Services
                                 Age = item.Age,
                             });
                         }
-                        fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders); 
+                        fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders);
+                        fileUpload.TotalRecordCount = userDatas.Count;
                         _context.BulkInsertAsync(userDatas);
                         _context.SaveChanges();
 
@@ -686,5 +693,68 @@ namespace BAT.api.Services
             }
         }
 
+        public async Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest , int AdminId)
+        {
+            //generate sql query from inofrmation
+
+            //chck if file for processing exist
+
+            var existingFile = _context.FileUploads.FirstOrDefault(x => x.Id == processFileRequest.FileId);
+            if (existingFile == null)
+                throw new AppException("File for processing does not exist");
+
+            var sqlQUery = QueryGenerator.GenerateQuery(processFileRequest.processingQueries);
+            var result = await _dapperDbConnection.QueryAsync<UserImportlDataDto>(sqlQUery);
+
+            
+
+            var folderName = Path.Combine("AppUploads", "MergedData");
+            var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
+            var fileName = processFileRequest.FileName + ".xlsx";
+            var fullPath = Path.Combine(pathToSave, fileName);
+            var filePath = Path.Combine(folderName, fileName);
+            filePath = filePath.Replace("\\", "//");
+            using (var writer = new ExcelWriter(fullPath))
+            {
+                writer.WriteRecords(result);
+            }
+
+            //save file record in the database
+            FileUpload fileUpload = new FileUpload
+            {
+                UploadedBy = AdminId,
+                DateUploaded = DateTime.UtcNow,
+                FileName = processFileRequest.FileName,
+                FileType = ".xlsx",
+                DownloadUrl = filePath,
+                HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                IsInPreviewMode = false,
+                DateSaved = DateTime.UtcNow,
+                FileSize = StringHelpers.FileSize(fullPath),
+                IsProcessed = true,
+                DateProcessed = DateTime.UtcNow,
+                TotalRecordCount = result.Count,
+                HourProcessed = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                ProcessedBy = AdminId,
+                Fields = existingFile.Fields,
+            };
+            _context.FileUploads.Add(fileUpload);
+            _context.SaveChanges();
+
+
+            return new Response<int>
+            {
+                Data = fileUpload.Id,
+                Message = "Processing Sucessful",
+                Succeeded = true
+            };
+
+  
+        }
+
+        public Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId)
+        {
+            throw new NotImplementedException();
+        }
     }
  }

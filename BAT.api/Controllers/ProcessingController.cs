@@ -2,6 +2,7 @@
 using BAT.api.Models.Dtos.UserData;
 using BAT.api.Services;
 using BAT.api.Utils.Filters;
+using BAT.api.Utils.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,19 +31,28 @@ namespace BAT.api.Controllers
         //}
 
 
-        [HttpPost("GetUserUploads")]
-        public IActionResult GetUserUploads([FromQuery] PaginationFilter filter)
-        {
-            var route = Request.Path.Value;
-            var response = _fileUploadService.GetUserFileUploads(filter, route, Account);
-            return Ok(response);
-        }
+        //[HttpPost("GetUserUploads")]
+        //public IActionResult GetUserUploads([FromQuery] PaginationFilter filter)
+        //{
+        //    var route = Request.Path.Value;
+        //    var response = _fileUploadService.GetUserFileUploads(filter, route, Account);
+        //    return Ok(response);
+        //}
 
-        [HttpPost("ViewUserUploads")]
-        public IActionResult ViewUserUploads([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
+        //[HttpPost("ViewUserUploads")]
+        //public IActionResult ViewUserUploads([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
+        //{
+        //    var route = Request.Path.Value;
+        //    var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
+        //    return Ok(response);
+        //}
+
+
+        [HttpPost("ProcessFile")]
+        public async Task<IActionResult> ProcessFile(ProcessFileRequest queries)
         {
             var route = Request.Path.Value;
-            var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
+            var response = await _fileUploadService.ProcessFile(queries, Account.Id);
             return Ok(response);
         }
 

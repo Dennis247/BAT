@@ -11,9 +11,13 @@ namespace BAT.api.Models.Entities
         public string DownloadUrl { get; set; } 
         public int UploadedBy { get; set; }
         public  string? HourUploaded { get; set; }
-        public double FileSize { get; set; }
+        public string FileSize { get; set; }
 
         public string? Fields { get; set; }
+
+
+        //For AnalyzedFile
+        public int TotalRecordCount { get; set; }
 
 
 
@@ -33,7 +37,7 @@ namespace BAT.api.Models.Entities
         public bool IsProcessed { get; set; }
         public int? ProcessedBy { get; set; }
         public DateTime? DateProcessed { get; set; }
-        public string? ProcessedIds { get; set; }
+     //   public string? ProcessedIds { get; set; }
         public string? HourProcessed { get; set; }
 
 

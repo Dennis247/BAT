@@ -19,5 +19,12 @@
             return $"{result} PM";
         }
 
+
+        public static string FileSize(string fullPath)
+        {
+            double fileSize = (new FileInfo(fullPath).Length) / (1000);
+            return fileSize.ToString();
+        }
+
     }
 }
