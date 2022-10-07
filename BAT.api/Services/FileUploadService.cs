@@ -29,7 +29,7 @@ namespace BAT.api.Services
         PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
         Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
 
-        Response<int> PreviewFile(IFormFile formFile, int AdminId);
+        Task<Response<int>> PreviewFile(IFormFile formFile, int AdminId);
 
         PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, Account account, string route);
 
@@ -40,11 +40,14 @@ namespace BAT.api.Services
         Response<string> DeleteFile(int FileId);
         Response<string> UpdateFile(UpdateFile updateFile, int AdminId);
 
-        Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, int AdminId);
+        Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account);
 
 
         //Group by supplied fileds and return the total records for groups
         Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId);
+
+
+        PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account);
 
 
     }
@@ -77,23 +80,28 @@ namespace BAT.api.Services
         public PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            int totalRecords = 0;
             var pagedData = new List<FileUpload>();
             if (account.Role == ROLES.SuperAdmin)
             {
-                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode)
+                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && !x.IsProcessed)
          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
          .Take(validFilter.PageSize)
          .ToList();
+
+                totalRecords = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && !x.IsProcessed).Count();
             }
             else
             {
-                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && x.UploadedBy == account.Id)
+                pagedData = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && x.UploadedBy == account.Id && !x.IsProcessed)
          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
          .Take(validFilter.PageSize)
          .ToList();
+
+                totalRecords = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && x.UploadedBy == account.Id && !x.IsProcessed).Count();
             }
 
-            var totalRecords = _context.FileUploads.Count();
+          
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
 
 
@@ -118,11 +126,11 @@ namespace BAT.api.Services
 
             foreach (var item in mergeUserDataDto.FieldsForMerging)
             {
-                foreach (var item2 in mergeUserDataDto.MergeData.Select(x=>x.TabeleFields))
+                foreach (var item2 in mergeUserDataDto.MergeData.Select(x => x.TabeleFields))
                 {
                     if (!item.Contains(item))
                     {
-                        throw new AppException($"Selected Fields for merging must be present in Files selected for merging");     
+                        throw new AppException($"Selected Fields for merging must be present in Files selected for merging");
                     }
                 }
             }
@@ -152,7 +160,7 @@ namespace BAT.api.Services
 
             FileUpload fileUpload = new FileUpload
             {
-                DateMerged =  DateTime.UtcNow,
+                DateMerged = DateTime.UtcNow,
                 DownloadUrl = filePath,
                 FileSize = StringHelpers.FileSize(fullPath),
                 UploadedBy = AdminId,
@@ -165,12 +173,12 @@ namespace BAT.api.Services
                 FileName = mergeUserDataDto.MergedFileName,
                 FileType = "xlsx",
                 DateSaved = DateTime.UtcNow,
-                
+
             };
 
             _context.FileUploads.Add(fileUpload);
             _context.SaveChanges();
-         
+
 
             return new Response<int>
             {
@@ -181,7 +189,7 @@ namespace BAT.api.Services
 
         }
 
-    
+
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route)
         {
             List<int> mergedids = new List<int>();
@@ -196,7 +204,7 @@ namespace BAT.api.Services
             if (userData.IsMerged)
             {
                 //special case
-              //  mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
+                //  mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
             }
 
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
@@ -228,7 +236,7 @@ namespace BAT.api.Services
 
         }
 
-        public Response<int> PreviewFile(IFormFile formFile, int AdminId)
+        public async Task<Response<int>> PreviewFile(IFormFile formFile, int AdminId)
         {
             if (formFile == null || formFile.Length <= 0)
             {
@@ -257,129 +265,174 @@ namespace BAT.api.Services
                 var fileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
                 var fullPath = Path.Combine(pathToSave, fileName);
                 var filePath = Path.Combine(folderName, fileName);
+               
+            
                 filePath = filePath.Replace("\\", "//");
-                using (var stream = new FileStream(fullPath, FileMode.Create))
+
+                if (File.Exists(fullPath))
                 {
-                    formFile.CopyTo(stream);
-                }
-
-                double fileSize = (new FileInfo(fullPath).Length)/ (1000);
-                fileSize = Math.Round(fileSize, 2);
-
                     try
                     {
-                        List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
-                         fileUpload = new FileUpload
+                        File.Delete(fullPath);
+                    }
+                    catch (Exception)
+                    {
+
+                      
+                    }
+                  
+                }
+
+                using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                {
+                    formFile.CopyTo(stream);
+                    stream.Dispose();
+                }
+
+           
+             
+
+                try
+                {
+                    List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
+                    fileUpload = new FileUpload
+                    {
+                        UploadedBy = AdminId,
+                        DateUploaded = DateTime.UtcNow,
+                        FileName = formFile.FileName,
+                        FileType = fileExtension,
+                        DownloadUrl = filePath,
+                        HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                        IsInPreviewMode = true,
+                        FileSize = StringHelpers.FileSize(fullPath),
+
+                    };
+
+                    _context.FileUploads.Add(fileUpload);
+                    _context.SaveChanges();
+                    fileId = fileUpload.Id;
+
+                    if (fileExtension.ToLower() == ".csv")
+                    {
+                        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                         {
-                            UploadedBy = AdminId,
-                            DateUploaded = DateTime.UtcNow,
-                            FileName = formFile.FileName,
-                            FileType = fileExtension,
-                            DownloadUrl = filePath,
-                            HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
-                            IsInPreviewMode = true,
-                            FileSize = StringHelpers.FileSize(fullPath),
-                         
+                            HeaderValidated = null,
+                            MissingFieldFound = null
                         };
-
-                        _context.FileUploads.Add(fileUpload);
-                        _context.SaveChanges();
-                        fileId = fileUpload.Id;
-
-                        if (fileExtension.ToLower() == ".csv")
+                        //Todo read file from excel and bulk insert into db
+                        using (var reader2 = new StreamReader(fullPath))
+                        using (var csv = new CsvReader(reader2, config))
                         {
-                            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-                            {
-                                HeaderValidated = null,
-                                MissingFieldFound = null
-                            };
-                            //Todo read file from excel and bulk insert into db
-                            using (var reader2 = new StreamReader(fullPath))
-                            using (var csv = new CsvReader(reader2, config))
-                            {
-                              
-                                userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
 
-                                //validate that the headers from the upload are part of the defined columns in the database
+                            userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
 
-                                var headers = csv.HeaderRecord;
-                                foreach (var item in headers)
-                                {
-                                    fileHeaders.Add(item.ToLower());
-                                    if (Constants.Columns.Contains(item.ToLower()))
-                                    {
-                                        throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
-                                            $" {JsonConvert.SerializeObject(Constants.Columns)}");
-                                    }
-                                }
+                            //validate that the headers from the upload are part of the defined columns in the database
 
-                            }
-                        }
-                        else if (fileExtension.ToLower() == ".xlsx")
-                        {
-                            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-                            {
-                                HeaderValidated = null,
-                                MissingFieldFound = null
-                            };
-
-                            //Todo read file from excel and bulk insert into db
-                            var parser = new ExcelParser(fullPath, "sheet1", config);
-                            
-                            using var reader = new CsvReader(parser);
-                            userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
-                            var headers = reader.HeaderRecord;
-
+                            var headers = csv.HeaderRecord;
                             foreach (var item in headers)
                             {
                                 fileHeaders.Add(item.ToLower());
-                                if (!Constants.Columns.Contains(item.ToLower()))
+                                if (Constants.Columns.Contains(item.ToLower()))
                                 {
+                                    _context.FileUploads.Remove(fileUpload);
+                                    _context.SaveChanges();
+                                    try
+                                    {
+                                        File.Delete(fullPath);
+                                    }
+                                    catch (Exception)
+                                    {
+
+                                        //      throw;
+                                    }
                                     throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
                                         $" {JsonConvert.SerializeObject(Constants.Columns)}");
                                 }
                             }
+
                         }
-
-                        List<UserData> userDatas = new List<UserData>();
-                        foreach (var item in userDataToSave)
+                    }
+                    else if (fileExtension.ToLower() == ".xlsx")
+                    {
+                        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                         {
+                            HeaderValidated = null,
+                            MissingFieldFound = null
+                        };
 
-                            userDatas.Add(new UserData
+                        //Todo read file from excel and bulk insert into db
+                        var parser = new ExcelParser(fullPath, "sheet1", config);
+
+                        using var reader = new CsvReader(parser);
+                        userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+                        var headers = reader.HeaderRecord;
+
+                        foreach (var item in headers)
+                        {
+                            fileHeaders.Add(item.ToLower());
+                            if (!Constants.Columns.Contains(item.ToLower()))
                             {
-                                Created = DateTime.UtcNow,
-                                CreatedBy = AdminId,
-                                Email = item.Email,
-                                FileId = fileUpload.Id,
-                                FirstName = item.FirstName,
-                                Gender = item.Gender,
-                                LastName = item.LastName,
-                                PhoneNumber = item.PhoneNumber,
-                                State = item.State,
-                                FileFields = JsonConvert.SerializeObject(fileHeaders),
-                                Age = item.Age,
-                            });
-                        }
-                        fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders);
-                        fileUpload.TotalRecordCount = userDatas.Count;
-                        _context.BulkInsertAsync(userDatas);
-                        _context.SaveChanges();
+                                _context.FileUploads.Remove(fileUpload);
+                                _context.SaveChanges();
+                                try
+                                {
+                                    File.Delete(fullPath);
+                                }
+                                catch (Exception)
+                                {
 
-                    }
-                    catch (Exception ex)
-                    {
-                        File.Delete(fullPath);
-                        if(fileUpload != null)
-                        {
-                            _context.FileUploads.Remove(fileUpload);
+                              //      throw;
+                                }
+                           
+                                throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
+                                    $" {JsonConvert.SerializeObject(Constants.Columns)}");
+                            }
                         }
-                     
-                        throw new Exception(ex.ToString());
                     }
-                    finally
+
+                    List<UserData> userDatas = new List<UserData>();
+                    foreach (var item in userDataToSave)
                     {
-                        _context.connection.Close();
+
+                        userDatas.Add(new UserData
+                        {
+                            Created = DateTime.UtcNow,
+                            CreatedBy = AdminId,
+                            Email = item.Email,
+                            FileId = fileUpload.Id,
+                            FirstName = item.FirstName,
+                            Gender = item.Gender,
+                            LastName = item.LastName,
+                            PhoneNumber = item.PhoneNumber,
+                            State = item.State,
+                            FileFields = JsonConvert.SerializeObject(fileHeaders),
+                            Age = item.Age,
+                        });
                     }
+                    var fileSize = StringHelpers.FileSize(fullPath);
+                    fileUpload.FileSize = fileSize;
+                    fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders);
+                    fileUpload.TotalRecordCount = userDatas.Count;
+
+
+                    _context.SaveChanges();
+                   await  _context.BulkInsertAsync(userDatas);
+
+                }
+                catch (Exception ex)
+                {
+                    File.Delete(fullPath);
+                    if (fileUpload != null)
+                    {
+                        _context.FileUploads.Remove(fileUpload);
+                    }
+
+                    throw new Exception(ex.ToString());
+                }
+                finally
+                {
+                    _context.connection.Close();
+                }
 
                 return new Response<int>
                 {
@@ -500,8 +553,8 @@ namespace BAT.api.Services
 
             var allFileContents = _context.UserDatas.Where(x => x.FileId == FileId);
 
-             _context.FileUploads.Remove(existingFile);
-          
+            _context.FileUploads.Remove(existingFile);
+
             _context.RemoveRange(allFileContents.ToList());
             _context.SaveChanges();
 
@@ -564,7 +617,7 @@ namespace BAT.api.Services
                     }
 
 
-                     if (fileExtension.ToLower() == ".csv")
+                    if (fileExtension.ToLower() == ".csv")
                     {
                         //Todo read file from excel and bulk insert into db
                         using (var reader2 = new StreamReader(fullPath))
@@ -586,7 +639,7 @@ namespace BAT.api.Services
                     }
 
 
-                     //Todo update for file
+                    //Todo update for file
                     List<UserData> userDatas = new List<UserData>();
                     foreach (var item in userDataToSave)
                     {
@@ -602,7 +655,7 @@ namespace BAT.api.Services
                             PhoneNumber = item.PhoneNumber,
                             State = item.State,
                             Age = item.Age,
-                           
+
                         });
                     }
                     _context.BulkInsertAsync(userDatas);
@@ -616,8 +669,8 @@ namespace BAT.api.Services
                     };
 
                 }
-           
-               throw new AppException("File Contents Cannot be empty");
+
+                throw new AppException("File Contents Cannot be empty");
             }
 
             throw new AppException("Only .csv and .xlsx files are allowed");
@@ -693,7 +746,7 @@ namespace BAT.api.Services
             }
         }
 
-        public async Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest , int AdminId)
+        public async Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account)
         {
             //generate sql query from inofrmation
 
@@ -703,10 +756,12 @@ namespace BAT.api.Services
             if (existingFile == null)
                 throw new AppException("File for processing does not exist");
 
+            string rules = JsonConvert.SerializeObject(processFileRequest.processingQueries);
+
             var sqlQUery = QueryGenerator.GenerateQuery(processFileRequest.processingQueries);
             var result = await _dapperDbConnection.QueryAsync<UserImportlDataDto>(sqlQUery);
 
-            
+
 
             var folderName = Path.Combine("AppUploads", "MergedData");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -722,7 +777,7 @@ namespace BAT.api.Services
             //save file record in the database
             FileUpload fileUpload = new FileUpload
             {
-                UploadedBy = AdminId,
+                UploadedBy = account.Id,
                 DateUploaded = DateTime.UtcNow,
                 FileName = processFileRequest.FileName,
                 FileType = ".xlsx",
@@ -735,10 +790,27 @@ namespace BAT.api.Services
                 DateProcessed = DateTime.UtcNow,
                 TotalRecordCount = result.Count,
                 HourProcessed = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
-                ProcessedBy = AdminId,
+                ProcessedBy = account.Id,
                 Fields = existingFile.Fields,
             };
             _context.FileUploads.Add(fileUpload);
+            _context.SaveChanges();
+
+
+            ProcessedFileDetails processedFileDetails = new ProcessedFileDetails
+            {
+                Administrator = account.Id,
+                DateProcessed = DateTime.UtcNow,
+                FileId = fileUpload.Id,
+                FileName = fileUpload.FileName,
+                ProcessRule = rules,
+                AdministratorName = $"{account.FirstName} {account.LastName}",
+                DownloadUrl = filePath,
+                Fields = existingFile.Fields,
+                Title = processFileRequest.Title
+            };
+
+            _context.ProcessedFileDetails.Add(processedFileDetails);
             _context.SaveChanges();
 
 
@@ -749,12 +821,35 @@ namespace BAT.api.Services
                 Succeeded = true
             };
 
-  
+
         }
 
         public Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId)
         {
             throw new NotImplementedException();
         }
+
+        public PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account)
+        {
+            var pagedData = new List<ProcessedFileDetails>();
+            int totalRecords = 0;
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            if (Account.Role == ROLES.SuperAdmin)
+            {
+                pagedData = _context.ProcessedFileDetails.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                totalRecords = _context.ProcessedFileDetails.Count();
+            }
+            else
+            {
+                pagedData = _context.ProcessedFileDetails.Where(x =>x.Administrator  == Account.Id).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                totalRecords = _context.ProcessedFileDetails.Where(x => x.Administrator == Account.Id).Count();
+            }
+
+            
+            var processedUploadToReturn = _mapper.Map<List<ProcessedFileDetailsDto>>(pagedData);
+            var pagedReponse = PaginationHelper.CreatePagedReponse<ProcessedFileDetailsDto>(processedUploadToReturn, validFilter, totalRecords, _uriService, route);
+            return pagedReponse;
+
+        }
     }
- }
+}

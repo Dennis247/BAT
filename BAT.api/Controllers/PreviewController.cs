@@ -21,9 +21,9 @@ namespace BAT.api.Controllers
 
 
         [HttpPost("PreviewFile")]
-        public IActionResult PreviewFile(IFormFile file)
+        public async Task<IActionResult> PreviewFile(IFormFile file)
         {
-            var response = _fileUploadService.PreviewFile(file, Account.Id);
+            var response = await _fileUploadService.PreviewFile(file, Account.Id);
             return Ok(response);
         }
 

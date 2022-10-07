@@ -30,7 +30,6 @@
   <ItemGroup>
     <Folder Include="AppUploads\CandidatesImage\" />
     <Folder Include="AppUploads\MergedData\" />
-    <Folder Include="AppUploads\UpdatedeUserData\" />
     <Folder Include="AppUploads\UserData\" />
     <Folder Include="wwwroot\" />
     <Folder Include="Wrappers\" />
@@ -44,6 +43,21 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="AppUploads\CandidatesImage\OSAGIEDE_Two.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\MergedData\Processed File.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\MergedData\Processed File1.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\MergedData\Processed Filexx.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UpdatedeUserData\demoxx.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\UserData\demoxx.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="AppUploads\UserData\MergedNow.csv">

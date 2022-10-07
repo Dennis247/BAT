@@ -190,6 +190,7 @@
     {
         public int FileId { get; set; }
         public string FileName { get; set; }
+        public string Title { get; set; }
         public List<ProcessingQuery> processingQueries { get; set; }
     }
 

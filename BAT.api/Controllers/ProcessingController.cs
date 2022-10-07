@@ -40,7 +40,7 @@ namespace BAT.api.Controllers
         //}
 
         //[HttpPost("ViewUserUploads")]
-        //public IActionResult ViewUserUploads([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
+        //public IActionResult ViewUserUploads( [FromQuery] PaginationFilter filter)
         //{
         //    var route = Request.Path.Value;
         //    var response = _fileUploadService.ViewUserUploadData(fileId.FileId, filter, route);
@@ -48,17 +48,30 @@ namespace BAT.api.Controllers
         //}
 
 
-        [HttpPost("ProcessFile")]
-        public async Task<IActionResult> ProcessFile(ProcessFileRequest queries)
+        [HttpGet("GetProcessedFiles")]
+        public IActionResult GetProcessedFiles([FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
-            var response = await _fileUploadService.ProcessFile(queries, Account.Id);
+            var response =  _fileUploadService.GetProcessedFiles(filter, route, Account);
             return Ok(response);
         }
 
 
+        [HttpPost("ProcessFile")]
+        public async Task<IActionResult> ProcessFile(ProcessFileRequest queries)
+        {
+            var route = Request.Path.Value;
+            var response = await _fileUploadService.ProcessFile(queries, Account);
+            return Ok(response);
+        }
 
-
+        [HttpPost("ViewFileContents")]
+        public IActionResult ViewFileContents([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
+        {
+            var route = Request.Path.Value;
+            var response = _fileUploadService.ViewFileContents(fileId.FileId, filter, route);
+            return Ok(response);
+        }
 
 
     }

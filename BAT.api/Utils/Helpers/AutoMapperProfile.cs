@@ -1,5 +1,6 @@
 namespace BAT.api.Helpers;
 using AutoMapper;
+using BAT.api.Data;
 using BAT.api.Models.Dtos.AccountDtos;
 using BAT.api.Models.Dtos.Candidate;
 using BAT.api.Models.Dtos.FileUpload;
@@ -77,6 +78,8 @@ public class AutoMapperProfile : Profile
         CreateMap<Team, UserTeam>();
 
 
+        CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>();
+        CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>().ForMember(x => x.DownloadUrl, opt => opt.MapFrom<ProcessedFileDetailsResolver>());
 
 
     }
@@ -103,6 +106,7 @@ public class AutoMapperProfile : Profile
     {
         private readonly AppSettings _appSettings;
 
+
         public FileUploadResolver(IOptions<AppSettings> appSettings)
         {
             _appSettings = appSettings.Value;
@@ -113,4 +117,33 @@ public class AutoMapperProfile : Profile
             return $"{_appSettings.BaseUrl}{source.DownloadUrl}";
         }
     }
+
+
+    public class ProcessedFileDetailsResolver : IValueResolver<ProcessedFileDetails, ProcessedFileDetailsDto, string>
+    {
+        private readonly AppSettings _appSettings;
+        private readonly ApplicationDbContext _context;
+
+
+        public ProcessedFileDetailsResolver(IOptions<AppSettings> appSettings, ApplicationDbContext context)
+        {
+            _appSettings = appSettings.Value;
+            _context = context;
+        }
+
+        public string Resolve(ProcessedFileDetails source, ProcessedFileDetailsDto target, string destMember, ResolutionContext context)
+        {
+            //var admin = _context.Accounts.FirstOrDefault(x => x.Id == source.Administrator);
+            //if(admin != null)
+            //{
+            //    return $"{admin.FirstName} {admin.LastName}";
+            //}
+            //return "Not Available";
+            return $"{_appSettings.BaseUrl}{source.DownloadUrl}";
+
+        }
+    }
+
+
+
 }
