@@ -26,7 +26,7 @@ namespace BAT.api.Services
     public interface IFileUploadService
     {
         PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
-        PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
+        public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
         Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
 
         Task<Response<int>> PreviewFile(IFormFile formFile, int AdminId);
@@ -42,14 +42,12 @@ namespace BAT.api.Services
 
         Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account);
 
-
-        //Group by supplied fileds and return the total records for groups
-        Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId);
-
-
         PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account);
 
+        PagedResponse<List<UserDataDto>> ViewProcessedFileContents(int FileId, PaginationFilter filter, string route);
 
+
+        public Response<ProcessedFileDetailsDto> GetProcessedFileById(int Id);
     }
 
     public class FileUploadService : IFileUploadService
@@ -101,8 +99,9 @@ namespace BAT.api.Services
                 totalRecords = _context.FileUploads.Where(x => x.FileUploadType == FileUploadType.UserData && !x.IsInPreviewMode && x.UploadedBy == account.Id && !x.IsProcessed).Count();
             }
 
-          
+
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
+            filesUploadToReturn = GenericHelper.SortData(filesUploadToReturn, filter.sortBy, filter.sortOrder);
 
 
             var pagedReponse = PaginationHelper.CreatePagedReponse<FileUploadDto>(filesUploadToReturn, validFilter, totalRecords, _uriService, route);
@@ -199,35 +198,20 @@ namespace BAT.api.Services
             if (userData == null)
                 throw new AppException("Inavlid file Id");
 
-            //get file that holds all the data and read the data into a list
 
-            if (userData.IsMerged)
-            {
-                //special case
-                //  mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
-            }
 
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            if (userData.IsMerged)
-            {
-                pagedData = _context.UserDatas.Where(x => mergedids.Contains(x.FileId.Value))
-           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-           .Take(validFilter.PageSize)
-           .ToList();
-                count = _context.UserDatas.Count(x => mergedids.Contains(x.FileId.Value));
-            }
-            else
-            {
-                pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
-           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-           .Take(validFilter.PageSize)
-           .ToList();
-                count = _context.UserDatas.Count();
-            }
+
+            pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
+       .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+       .Take(validFilter.PageSize)
+       .ToList();
+            count = _context.UserDatas.Where(x => x.FileId == FileId).Count();
+
 
             var totalRecords = count;
             var userDataToReturn = _mapper.Map<List<UserDataDto>>(pagedData);
-
+            userDataToReturn = GenericHelper.SortData(userDataToReturn, filter.sortBy, filter.sortOrder);
 
             var pagedReponse = PaginationHelper.CreatePagedReponse<UserDataDto>(userDataToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
@@ -265,8 +249,8 @@ namespace BAT.api.Services
                 var fileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
                 var fullPath = Path.Combine(pathToSave, fileName);
                 var filePath = Path.Combine(folderName, fileName);
-               
-            
+
+
                 filePath = filePath.Replace("\\", "//");
 
                 if (File.Exists(fullPath))
@@ -278,9 +262,9 @@ namespace BAT.api.Services
                     catch (Exception)
                     {
 
-                      
+
                     }
-                  
+
                 }
 
                 using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.Read))
@@ -289,8 +273,8 @@ namespace BAT.api.Services
                     stream.Dispose();
                 }
 
-           
-             
+
+
 
                 try
                 {
@@ -369,7 +353,7 @@ namespace BAT.api.Services
 
                         foreach (var item in headers)
                         {
-                            fileHeaders.Add(item.ToLower());
+                            fileHeaders.Add(item);
                             if (!Constants.Columns.Contains(item.ToLower()))
                             {
                                 _context.FileUploads.Remove(fileUpload);
@@ -381,9 +365,9 @@ namespace BAT.api.Services
                                 catch (Exception)
                                 {
 
-                              //      throw;
+                                    //      throw;
                                 }
-                           
+
                                 throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
                                     $" {JsonConvert.SerializeObject(Constants.Columns)}");
                             }
@@ -413,25 +397,34 @@ namespace BAT.api.Services
                     fileUpload.FileSize = fileSize;
                     fileUpload.Fields = JsonConvert.SerializeObject(fileHeaders);
                     fileUpload.TotalRecordCount = userDatas.Count;
-
+                    _context.FileUploads.Update(fileUpload);
 
                     _context.SaveChanges();
-                   await  _context.BulkInsertAsync(userDatas);
+                    await _context.BulkInsertAsync(userDatas);
 
                 }
                 catch (Exception ex)
                 {
-                    File.Delete(fullPath);
+
+                    try
+                    {
+                        File.Delete(fullPath);
+                    }
+                    catch (Exception)
+                    {
+
+
+                    }
                     if (fileUpload != null)
                     {
                         _context.FileUploads.Remove(fileUpload);
                     }
 
-                    throw new Exception(ex.ToString());
+
                 }
                 finally
                 {
-                    _context.connection.Close();
+
                 }
 
                 return new Response<int>
@@ -472,7 +465,7 @@ namespace BAT.api.Services
 
             var totalRecords = _context.FileUploads.Count();
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
-
+            filesUploadToReturn = GenericHelper.SortData(filesUploadToReturn, filter.sortBy, filter.sortOrder);
 
             var pagedReponse = PaginationHelper.CreatePagedReponse<FileUploadDto>(filesUploadToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
@@ -507,34 +500,18 @@ namespace BAT.api.Services
             if (userData == null)
                 throw new AppException("Inavlid file Id");
 
-            //get file that holds all the data and read the data into a list
-
-            if (userData.IsMerged)
-            {
-                mergedids.AddRange(JsonConvert.DeserializeObject<List<int>>(userData.MergedDetails));
-            }
-
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            if (userData.IsMerged)
-            {
-                pagedData = _context.UserDatas.Where(x => mergedids.Contains(x.FileId.Value))
-           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-           .Take(validFilter.PageSize)
-           .ToList();
-                count = _context.UserDatas.Count(x => mergedids.Contains(x.FileId.Value));
-            }
-            else
-            {
-                pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
-           .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
-           .Take(validFilter.PageSize)
-           .ToList();
-                count = _context.UserDatas.Count();
-            }
+
+            pagedData = _context.UserDatas.Where(x => x.FileId == FileId)
+       .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+       .Take(validFilter.PageSize)
+       .ToList();
+            count = _context.UserDatas.Where(x => x.FileId == FileId).Count();
+            //    }
 
             var totalRecords = count;
             var userDataToReturn = _mapper.Map<List<UserDataDto>>(pagedData);
-
+            userDataToReturn = GenericHelper.SortData(userDataToReturn, filter.sortBy, filter.sortOrder);
 
             var pagedReponse = PaginationHelper.CreatePagedReponse<UserDataDto>(userDataToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
@@ -758,12 +735,22 @@ namespace BAT.api.Services
 
             string rules = JsonConvert.SerializeObject(processFileRequest.processingQueries);
 
-            var sqlQUery = QueryGenerator.GenerateQuery(processFileRequest.processingQueries);
+            var sqlQUery = QueryGenerator.GenerateQuery(processFileRequest.processingQueries, existingFile.Id);
             var result = await _dapperDbConnection.QueryAsync<UserImportlDataDto>(sqlQUery);
 
+            if (result.Count == 0)
+            // if (0 == 0)
+            {
+                return new Response<int>
+                {
+                    Data = 0,
+                    Message = "Processing Rule returned no result",
+                    Succeeded = false
+                };
+            }
 
 
-            var folderName = Path.Combine("AppUploads", "MergedData");
+            var folderName = Path.Combine("AppUploads", "Processed");
             var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
             var fileName = processFileRequest.FileName + ".xlsx";
             var fullPath = Path.Combine(pathToSave, fileName);
@@ -774,7 +761,8 @@ namespace BAT.api.Services
                 writer.WriteRecords(result);
             }
 
-            //save file record in the database
+
+
             FileUpload fileUpload = new FileUpload
             {
                 UploadedBy = account.Id,
@@ -797,6 +785,9 @@ namespace BAT.api.Services
             _context.SaveChanges();
 
 
+            //save user data in the database
+
+
             ProcessedFileDetails processedFileDetails = new ProcessedFileDetails
             {
                 Administrator = account.Id,
@@ -807,16 +798,45 @@ namespace BAT.api.Services
                 AdministratorName = $"{account.FirstName} {account.LastName}",
                 DownloadUrl = filePath,
                 Fields = existingFile.Fields,
-                Title = processFileRequest.Title
+                Title = processFileRequest.Title,
+                UploadedFileCount = existingFile.TotalRecordCount,
+                ProcessedItemCount = result.Count
             };
 
             _context.ProcessedFileDetails.Add(processedFileDetails);
+
+
+
+            //save file record in the database
+            List<UserData> userDatas = new List<UserData>();
+            foreach (var item in result)
+            {
+
+                userDatas.Add(new UserData
+                {
+                    Created = DateTime.UtcNow,
+                    CreatedBy = account.Id,
+                    Email = item.Email,
+                    FileId = fileUpload.Id,
+                    FirstName = item.FirstName,
+                    Gender = item.Gender,
+                    LastName = item.LastName,
+                    PhoneNumber = item.PhoneNumber,
+                    State = item.State,
+                    FileFields = existingFile.Fields,
+                    Age = item.Age,
+                });
+            }
+
+
             _context.SaveChanges();
+            await _context.BulkInsertAsync(userDatas);
+
 
 
             return new Response<int>
             {
-                Data = fileUpload.Id,
+                Data = processedFileDetails.Id,
                 Message = "Processing Sucessful",
                 Succeeded = true
             };
@@ -824,12 +844,9 @@ namespace BAT.api.Services
 
         }
 
-        public Task<Response<string>> AnalyzeFile(ProcessFileRequest processFileRequest, int AdminId)
-        {
-            throw new NotImplementedException();
-        }
 
-        public PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account)
+
+        public PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles(PaginationFilter filter, string route, Account Account)
         {
             var pagedData = new List<ProcessedFileDetails>();
             int totalRecords = 0;
@@ -841,15 +858,108 @@ namespace BAT.api.Services
             }
             else
             {
-                pagedData = _context.ProcessedFileDetails.Where(x =>x.Administrator  == Account.Id).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                pagedData = _context.ProcessedFileDetails.Where(x => x.Administrator == Account.Id).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
                 totalRecords = _context.ProcessedFileDetails.Where(x => x.Administrator == Account.Id).Count();
             }
 
-            
+
             var processedUploadToReturn = _mapper.Map<List<ProcessedFileDetailsDto>>(pagedData);
+            processedUploadToReturn = GenericHelper.SortData(processedUploadToReturn, filter.sortBy, filter.sortOrder);
             var pagedReponse = PaginationHelper.CreatePagedReponse<ProcessedFileDetailsDto>(processedUploadToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
 
+        }
+
+
+        public PagedResponse<List<UserDataDto>> ViewProcessedFileContents(int FileId, PaginationFilter filter, string route)
+        {
+            List<int> mergedids = new List<int>();
+            List<UserData> pagedData = new List<UserData>();
+            var processedData = _context.ProcessedFileDetails.FirstOrDefault(x => x.FileId == FileId);
+            int count = 0;
+            if (processedData == null)
+                throw new AppException("Processed file does not exist");
+
+            //get file that holds all the data and read the data into a list
+
+
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+
+            pagedData = _context.UserDatas.Where(x => x.FileId == processedData.FileId)
+       .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+       .Take(validFilter.PageSize)
+       .ToList();
+            count = _context.UserDatas.Where(x => x.FileId == processedData.FileId).Count();
+
+
+            var totalRecords = count;
+            var userDataToReturn = _mapper.Map<List<UserDataDto>>(pagedData);
+            userDataToReturn = GenericHelper.SortData(userDataToReturn, filter.sortBy, filter.sortOrder);
+
+            var pagedReponse = PaginationHelper.CreatePagedReponse<UserDataDto>(userDataToReturn, validFilter, totalRecords, _uriService, route);
+            return pagedReponse;
+
+
+
+        }
+
+        public Response<ProcessedFileDetailsDto> GetProcessedFileById(int Id)
+        {
+            var processedFile = _context.ProcessedFileDetails.FirstOrDefault(x => x.Id == Id);
+            if (processedFile == null)
+                throw new KeyNotFoundException("Processed file does not exist");
+
+            var dataToReturn = _mapper.Map<ProcessedFileDetailsDto>(processedFile);
+
+            return new Response<ProcessedFileDetailsDto>
+            {
+                Data = dataToReturn,
+                Message = "Sucessful",
+                Succeeded = true
+            };
+        }
+
+
+        //
+        private List<AnalyzeDataDto> SortData(List<AnalyzeDataDto> data, string sortField, string sortOrder)
+        {
+            try
+            {
+                string SortField = sortField;
+                string SortOrder = sortOrder;
+
+
+                if (string.IsNullOrEmpty(sortField))
+                {
+                    SortField = "Id";
+                    SortOrder = "asc";
+                }
+
+                if (string.IsNullOrEmpty(sortOrder))
+                {
+                    SortOrder = "asc";
+                }
+
+                SortField = StringHelpers.ToTitleCase(SortField);
+
+
+                var propertyInfo = typeof(AnalyzeDataDto).GetProperty(SortField);
+                if (SortOrder == "asc")
+                {
+                    data = data.OrderBy(s => propertyInfo.GetValue(s, null)).ToList();
+                }
+                else
+                {
+                    data = data.OrderByDescending(s => propertyInfo.GetValue(s, null)).ToList();
+                }
+                return data;
+            }
+            catch (Exception)
+            {
+
+                return data;
+            }
         }
     }
 }

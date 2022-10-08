@@ -56,11 +56,18 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
+        [HttpGet("GetProcessById")]
+        public IActionResult GetProcessById([FromQuery] ParameterId parameter)
+        {
+            var response = _fileUploadService.GetProcessedFileById(parameter.Id);
+            return Ok(response);
+        }
 
         [HttpPost("ProcessFile")]
         public async Task<IActionResult> ProcessFile(ProcessFileRequest queries)
         {
             var route = Request.Path.Value;
+            queries.FileName = $"Proc_{queries.FileName}";
             var response = await _fileUploadService.ProcessFile(queries, Account);
             return Ok(response);
         }
@@ -69,7 +76,7 @@ namespace BAT.api.Controllers
         public IActionResult ViewFileContents([FromBody] ViewFileId fileId, [FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
-            var response = _fileUploadService.ViewFileContents(fileId.FileId, filter, route);
+            var response = _fileUploadService.ViewProcessedFileContents(fileId.FileId, filter, route);
             return Ok(response);
         }
 

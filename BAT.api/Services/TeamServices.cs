@@ -14,13 +14,14 @@ namespace BAT.api.Services
     public interface ITeamServices
     {
         Response<string> AddAdminToTeam(AddAdminToTeam addAdminToTeam,int AddedBy);
+
         Response<int> AddTeam(AddTeam addTeam, int AdminId);
         Response<string> DeleteTeam(int Id);
         Response<List<TeamDetails>> GetAllTeams();
-        Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<string> UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission, int AdminId);
-
+        Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<TeamWithUserAndPriviledges> GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId);
+         Response<string> UpdateAdminToTeam(UpdateAdminToTeam updateAdminTeam, int AddedBy);
     }
 
 
@@ -74,6 +75,43 @@ namespace BAT.api.Services
             {
                 Data = "",
                 Message = "Admin added to team Sucessful",
+                Succeeded = true,
+            };
+        }
+
+        public Response<string> UpdateAdminToTeam(UpdateAdminToTeam updateAdminTeam, int AddedBy)
+        {
+            var existingAdmin = _context.Accounts.SingleOrDefault(x => x.Id == updateAdminTeam.AdminId);
+            if (existingAdmin == null)
+                throw new AppException("Admin is not valid");
+            var existingTeam = _context.Teams.SingleOrDefault(x => x.Id == updateAdminTeam.TeamId);
+            if (existingTeam == null)
+                throw new AppException("Team is not valid");
+
+            //check if admin already belongs to team
+            var adminExistinTeam = _context.AdminTeams.FirstOrDefault(x => x.AdminId == updateAdminTeam.AdminId
+            && x.TeamId == updateAdminTeam.TeamId);
+
+            if(adminExistinTeam != null)
+            {
+                _context.AdminTeams.Remove(adminExistinTeam);
+            }
+
+            AdminTeam adminTeam = new AdminTeam
+            {
+                AddedBy = AddedBy,
+                AdminId = updateAdminTeam.AdminId,
+                Created = DateTime.UtcNow,
+                TeamId = updateAdminTeam.TeamId,
+            };
+
+            _context.AdminTeams.Add(adminTeam);
+            _context.SaveChanges();
+
+            return new Response<string>
+            {
+                Data = "",
+                Message = "Admin Team updated Sucessful",
                 Succeeded = true,
             };
         }

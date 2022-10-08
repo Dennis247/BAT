@@ -68,7 +68,8 @@ namespace BAT.api.Services
         
 
             userReportDashBoard.UploadedData = _context.FileUploads.Count();
-            userReportDashBoard.ProcessedData = _context.FileUploads.Count(x=>x.IsProcessed);
+            userReportDashBoard.ProcessedData = _context.ProcessedFileDetails.Count();
+            userReportDashBoard.ReportCreated = _context.AnalyzeDatas.Count();
 
             var uploadedData = from u in _context.FileUploads
                                  group u by u.HourUploaded into g

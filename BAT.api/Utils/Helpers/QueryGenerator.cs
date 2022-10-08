@@ -4,13 +4,15 @@
     {
 
 
-        public static string GenerateQuery(List<ProcessingQuery> queries)
+        public static string GenerateQuery(List<ProcessingQuery> queries,int FileId)
         {
             string query = "";
 
             //use lower and higher value when values are just 2 and they are numbers
             int higherRange = 0;
             int lowerRange = 0;
+
+            string condition = "=";
 
 
             //use OR values when you have more than one comma delimiters
@@ -25,13 +27,16 @@
 
           //  #region first part of the query
             var firstPArt = queries[0];
+            condition = firstPArt.Condition;
             var firstValueJoin = firstPArt.Value.Split(',').ToList();
             if (firstValueJoin.Count == 1)
             {
                 exactValue = firstValueJoin[0];
+             
+
             }
             else if (firstValueJoin.Count == 2
-                && firstValueJoin[0].All(char.IsDigit) && firstValueJoin[1].All(char.IsDigit))
+                && firstValueJoin[0].All(char.IsDigit) && firstValueJoin[1].All(char.IsDigit) && condition.ToLower() == "between")
             {
 
                 lowerRange = int.Parse(firstValueJoin[0]);
@@ -46,31 +51,32 @@
             var firstQuery = "";
             if (exactValue != "")
             {
-                firstQuery = $"select * from UserDatas where {firstPArt.Field} = '{exactValue}' ";
+                firstQuery = $"select * from UserDatas where FileID = {FileId} AND ({firstPArt.Field} {condition} '{exactValue}') ";
                 query = firstQuery;
             }
             if (ORValues.Any())
             {
-                firstQuery = $"select * from UserDatas where ";
+                firstQuery = $"select * from UserDatas where FileID = {FileId} ";
                 string orPart = "";
                 for (int i = 0; i < ORValues.Count; i++)
                 {
-                    orPart += $"{firstPArt.Field} = '{ORValues[i]}' OR ";
+                    orPart += $"{firstPArt.Field} {condition} '{ORValues[i]}' OR ";
                 }
 
                 orPart = orPart.Remove(orPart.Length - 3);
-                query = firstQuery + orPart;
+                query = $"{firstQuery} AND ({orPart})";
 
             }
             if (higherRange > 0)
             {
-                firstQuery = $"select * from UserDatas where ";
+                firstQuery = $"select * from UserDatas where FileID = {FileId} ";
                 string betweenPart = "";
                 for (int i = 0; i < ORValues.Count; i++)
                 {
                     betweenPart = $"{firstPArt.Field} >= {lowerRange} &&  {firstPArt.Field}<= {higherRange} ";
                 }
-                query = firstQuery + betweenPart;
+                query = $"{firstQuery} AND ({betweenPart})";
+             
 
             }
           
@@ -100,6 +106,7 @@
                 //use lower and higher value when values are just 2 and they are numbers
                 int higherRange = 0;
                 int lowerRange = 0;
+                string condition = "=";
 
 
                 //use OR values when you have more than one comma delimiters
@@ -114,6 +121,7 @@
                 #region first part of the query
                 var firstPArt = queries[j];
                 var firstValueJoin = firstPArt.Value.Split(',').ToList();
+                condition = firstPArt.Condition;
                 if (firstValueJoin.Count == 1)
                 {
                     exactValue = firstValueJoin[0];
@@ -134,7 +142,7 @@
                 var firstQuery = "";
                 if (exactValue != "")
                 {
-                    firstQuery = $"AND ({firstPArt.Field} = '{exactValue}') ";
+                    firstQuery = $"AND ({firstPArt.Field} {condition} '{exactValue}') ";
                     query = firstQuery;
                 }
                 else if (ORValues.Any())
@@ -143,11 +151,11 @@
                     string orPart = "";
                     for (int i = 0; i < ORValues.Count; i++)
                     {
-                        orPart += $"{firstPArt.Field} = '{ORValues[i]}' OR ";
+                        orPart += $"{firstPArt.Field} {condition} '{ORValues[i]}' OR ";
                     }
 
                     orPart = orPart.Remove(orPart.Length - 3);
-                    query = firstQuery + $" ({orPart})";
+                    query = $"{firstQuery} AND ({orPart})";
 
                 }
                 else if (higherRange > 0)
@@ -157,7 +165,7 @@
 
                     betweenPart = $"{firstPArt.Field} >= {lowerRange} AND  {firstPArt.Field}<= {higherRange} ";
 
-                    query = firstQuery + $" ({betweenPart}) ";
+                    query = $"{firstQuery} AND ({betweenPart})";
 
                 }
                 #endregion

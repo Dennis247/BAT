@@ -21,8 +21,19 @@ namespace BAT.api.Models.Dtos.TeamDtos
     {
         [Required]
         public int TeamId { get; set; }
+        [Required]
         public int AdminId { get; set; }    
     }
+
+
+    public class UpdateAdminToTeam
+    {
+        [Required]
+        public int TeamId { get; set; }
+        [Required]
+        public int AdminId { get; set; }
+    }
+
 
     public class TeamDetailsId
     {

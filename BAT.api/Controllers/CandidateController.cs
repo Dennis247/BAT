@@ -23,7 +23,7 @@ namespace BAT.api.Controllers
         public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter, int UserId)
         {
             var route = Request.Path.Value;
-            var response = _candidateService.GetAllCandidates(filter, UserId,route);
+            var response = _candidateService.GetAllCandidates(filter, UserId,route,Account);
             return Ok(response);
         }
 

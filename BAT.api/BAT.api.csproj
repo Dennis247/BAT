@@ -30,6 +30,7 @@
   <ItemGroup>
     <Folder Include="AppUploads\CandidatesImage\" />
     <Folder Include="AppUploads\MergedData\" />
+    <Folder Include="AppUploads\Processed\" />
     <Folder Include="AppUploads\UserData\" />
     <Folder Include="wwwroot\" />
     <Folder Include="Wrappers\" />
@@ -52,6 +53,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="AppUploads\MergedData\Processed Filexx.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="AppUploads\Processed\Proc_string.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="AppUploads\UpdatedeUserData\demoxx.xlsx">

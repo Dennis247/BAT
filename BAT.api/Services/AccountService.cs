@@ -29,7 +29,7 @@ public interface IAccountService
     Response<int> RegisterPrivateAdmin(RegisterRequest model, string origin);
     Response<string> LogOut(int AdminId);
     Response<string> ForgotPassword(ForgotPasswordRequest model);
-     Response<string> ResetSecretAnswer(ResetSecretAnswer model);
+    Response<string> ResetSecretAnswer(ResetSecretAnswer model);
     Response<IEnumerable<AccountResponse>> GetAll();
     Response<AccountResponse> GetById(int id);
     Response<AuthenticateResponse> RefreshToken(string token, string ipAddress);
@@ -37,7 +37,7 @@ public interface IAccountService
     Response<string> ResetPassword(ResetPasswordRequest model);
     Response<bool> RevokeToken(string token, string ipAddress);
     Response<string> VerifyEmail(string token);
-    Response<string> ProvisionAdmin(ProvisonAdminRequest model,int  AdminId);
+    Response<string> ProvisionAdmin(ProvisonAdminRequest model, int AdminId);
     Response<string> RevokeInvite(RevokeAdminRequest model);
     Response<List<ProvisonAdminRequest>> PendingActivationRequest();
     Response<string> DeleteAdmin(DeleteAdminRequest deleteAdminRequest);

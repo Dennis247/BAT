@@ -47,10 +47,10 @@ namespace BAT.api.Controllers
             return Ok(response);
         }
 
-        [HttpPost("UpdateTeam")]
-        public IActionResult UpdateTeam(UpdateTeam updateTeam)
+        [HttpPost("UpdateAdminTeam")]
+        public IActionResult UpdateAdminTeam(UpdateAdminToTeam updateTeam)
         {
-            var response = _teamServices.UpdateTeam(updateTeam, Account.Id);
+            var response = _teamServices.UpdateAdminToTeam(updateTeam, Account.Id);
 
             return Ok(response);
         }

@@ -14,6 +14,9 @@
         public string? Fields { get; set; }
 
         public string? Title { get; set; }
+        public int ProcessedItemCount { get; set; }
+
+       public int UploadedFileCount { get; set; }   
 
     }
 

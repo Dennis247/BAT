@@ -22,6 +22,11 @@ namespace BAT.api.Models.Dtos.FileUpload
         public int FileId { get; set; } 
     }
 
+    public class ParameterId
+    {
+        public int Id { get; set; }
+    }
+
 
     public class UpdateFile
     {

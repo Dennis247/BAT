@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json.Serialization;
 using System.Text.Json.Serialization;
 using WebApi.Authorization;
 
@@ -31,6 +32,7 @@ builder.Services.AddTransient<IUserActivationServices, UserActivationServices>()
 builder.Services.AddTransient<IUserDataService, UserDataService>();
 builder.Services.AddTransient<IFileUploadService, FileUploadService>();
 builder.Services.AddTransient<IDapperDbConnection, DapperDbConnection>();
+builder.Services.AddTransient<IAnalyzeService, AnalyzeService>();
 
 
 
@@ -47,9 +49,13 @@ builder.Services.Configure<EmailConfiguration>(builder.Configuration.GetSection(
 
 builder.Services.AddControllers().AddJsonOptions(x =>
 {
-    // serialize enums as strings in api responses (e.g. Role)
     x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+
+
+//builder.Services.AddControllers()
+//            .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
+
 builder.Services.AddSwaggerGen(swagger =>
 {
     //This is to generate the Default UI of Swagger Documentation  
@@ -109,6 +115,7 @@ builder.Services.Configure<FormOptions>(o =>
     o.MultipartBodyLengthLimit = int.MaxValue;
     o.MemoryBufferThreshold = int.MaxValue;
 });
+
 
 
 var app = builder.Build();

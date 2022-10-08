@@ -41,6 +41,7 @@ namespace BAT.api.Data
         public DbSet<UserData> UserDatas { get; set; }
         public DbSet<ProcessedFileDetails> ProcessedFileDetails { get; set; }
         public DbSet<AnalyzeData> AnalyzeDatas { get; set; }
+        public DbSet<ExportRequest> ExportRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

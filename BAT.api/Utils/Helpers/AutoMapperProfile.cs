@@ -77,6 +77,11 @@ public class AutoMapperProfile : Profile
         CreateMap<UserTeam, Team>();
         CreateMap<Team, UserTeam>();
 
+        CreateMap<AnalyzeDataDto, AnalyzeData>();
+        CreateMap<AnalyzeData, AnalyzeDataDto>();
+
+        
+
 
         CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>();
         CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>().ForMember(x => x.DownloadUrl, opt => opt.MapFrom<ProcessedFileDetailsResolver>());

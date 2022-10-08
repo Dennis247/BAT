@@ -12,5 +12,20 @@
             "email",
             "age"
         };
+
+
+        public static string None = "NONE";
+        public static string PENDING = "PENDING";
+        public static string APPROVED = "APPROVED";
+        public static string REJECTED = "REJECTED";
+
+
+        //public enum RequestStatus
+        //{
+        //    None
+        //    Pending,
+        //    Approved,
+        //    Rejected
+        //}
     }
 }
