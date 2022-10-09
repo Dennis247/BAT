@@ -4,6 +4,7 @@ using BAT.api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BAT.api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221009152349_PmissonFix")]
+    partial class PmissonFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,15 +102,15 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1960),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9828),
                             Email = "batAdmin@gmail.com",
                             FirstName = "Dennis",
                             IsAdminPrivate = false,
                             IsOnline = true,
                             LastName = "Osagiede",
-                            LastTimeLoggedIn = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1962),
-                            LoggedOutTime = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1962),
-                            PasswordHash = "$HASH|V1$10000$IZP5ECnHMvXYoTWZSbayf3KsWavV8XKwU0dCoCed0N2BZ0fk",
+                            LastTimeLoggedIn = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9831),
+                            LoggedOutTime = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9831),
+                            PasswordHash = "$HASH|V1$10000$+WeNcsQVesxSeKfKdBBwD0vuPKJTWQIXcAAJYnyFClUwh6We",
                             Role = "SuperAdmin",
                             SecretAnswer = "TnVUfh67W2LTbJemuDoCQQ==",
                             Username = "mustang247",
@@ -488,7 +490,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 1,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1858),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9724),
                             CreatedBy = 1,
                             Name = "Can use upload data feature",
                             PermissionId = 1
@@ -496,7 +498,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 2,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1860),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9726),
                             CreatedBy = 1,
                             Name = "Can use the process data feature",
                             PermissionId = 2
@@ -504,7 +506,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 3,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1860),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9727),
                             CreatedBy = 1,
                             Name = "Can use the analyze data feature",
                             PermissionId = 3
@@ -512,7 +514,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 4,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1861),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9727),
                             CreatedBy = 1,
                             Name = "Can use the export data feature",
                             PermissionId = 4
@@ -520,7 +522,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 5,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1862),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9728),
                             CreatedBy = 1,
                             Name = "Can use the view or edit data feature",
                             PermissionId = 5
@@ -528,7 +530,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 6,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1862),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9729),
                             CreatedBy = 1,
                             Name = "Can use the update data feature",
                             PermissionId = 6
@@ -536,7 +538,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 7,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1863),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9729),
                             CreatedBy = 1,
                             Name = "Can add new team",
                             PermissionId = 7
@@ -544,7 +546,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 8,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1864),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9730),
                             CreatedBy = 1,
                             Name = "Can add new privilege",
                             PermissionId = 8
@@ -552,7 +554,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 9,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1864),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9731),
                             CreatedBy = 1,
                             Name = "Can change team name",
                             PermissionId = 9
@@ -560,7 +562,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 10,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1865),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9731),
                             CreatedBy = 1,
                             Name = "Can view teams",
                             PermissionId = 10
@@ -568,7 +570,7 @@ namespace BAT.api.Migrations
                         new
                         {
                             Id = 11,
-                            Created = new DateTime(2022, 10, 9, 16, 24, 26, 204, DateTimeKind.Utc).AddTicks(1866),
+                            Created = new DateTime(2022, 10, 9, 15, 23, 48, 693, DateTimeKind.Utc).AddTicks(9732),
                             CreatedBy = 1,
                             Name = "Can add admin users to teams",
                             PermissionId = 11
@@ -648,10 +650,6 @@ namespace BAT.api.Migrations
 
                     b.Property<int>("RequesterId")
                         .HasColumnType("int");
-
-                    b.Property<string>("SecretAnswer")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int");

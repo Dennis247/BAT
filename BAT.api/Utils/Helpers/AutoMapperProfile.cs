@@ -63,6 +63,10 @@ public class AutoMapperProfile : Profile
         CreateMap<FileUpload, FileUploadDto>();
         CreateMap<FileUpload, FileUploadDto>().ForMember(x => x.DownloadUrl, opt => opt.MapFrom<FileUploadResolver>());
 
+
+        CreateMap<FileUpload, UserFileUploadDto>();
+        CreateMap<UserFileUploadDto, FileUpload>();
+
         CreateMap<UserData, UserDataDto>();
 
         CreateMap<UserData, UserImportlDataDto>();

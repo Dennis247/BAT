@@ -37,13 +37,16 @@ public class ProvisonAdminRequest
     [Required]
     [EmailAddress]
     public string Email { get; set; }
-    [Required]
+
     public int TeamId { get; set; }
 
     public bool IsPrivateAdmin { get; set; }    
     [Required]
 
     public string RegistrationUrl { get; set; }
+
+    [Required]
+    public string SecretAnswer { get; set; }
 
 }
 

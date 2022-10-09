@@ -345,15 +345,17 @@ public class AccountService : IAccountService
     {
 
         //check if it has reached maximum admin count
-        if (_context.Accounts.Count() == 5)
+        if (_context.Accounts.Where(x=>!x.IsAdminPrivate).Count() == 5)
         {
             return new Response<int>
             {
                 Data = 0,
-                Message = "Maximum number of Admin has been Registered",
+                Message = "Maximum number of Public Admin has been Registered",
                 Succeeded = false
             };
         }
+
+        //validate the secret answer
 
         //check if password is string
         var isPasswordStrong = SecureTextHasher.IsPasswordStrong(model.Password);
@@ -372,7 +374,6 @@ public class AccountService : IAccountService
         // check if user already exist using first name , last name and password
 
         var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
-
         if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
         {
             throw new AppException("Your information matches an existing user,\nplease fill in the correct information or sign in");
@@ -431,16 +432,7 @@ public class AccountService : IAccountService
     public Response<int> RegisterPrivateAdmin(RegisterRequest model, string origin)
     {
 
-        //check if it has reached maximum admin count
-        if (_context.Accounts.Count() == 5)
-        {
-            return new Response<int>
-            {
-                Data = 0,
-                Message = "Maximum number of Admin has been Registered",
-                Succeeded = false
-            };
-        }
+        
 
         //check if password is string
         var isPasswordStrong = SecureTextHasher.IsPasswordStrong(model.Password);
@@ -592,6 +584,16 @@ public class AccountService : IAccountService
 
     public Response<string> ProvisionAdmin(ProvisonAdminRequest model, int AdminId)
     {
+
+        //check if secret answer has been used already to provison admin
+        var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+        var existingSecretAnswer = _context.ProvisionedAdmins.FirstOrDefault(x=>x.SecretAnswer == encryptedSecretAnswer);
+        if(encryptedSecretAnswer != null)
+        {
+            throw new AppException("Secret Answer has already been used for a previous Admin");
+        }
+      
+
         //check if admin has been provisioned already
         ProvisionedAdmin isAlreadProvisioned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);
         if(isAlreadProvisioned != null)
@@ -602,7 +604,7 @@ public class AccountService : IAccountService
             {
                 Data = null,
                 Message = "Admin has already been provisoned & mail invite sent again.",
-                Succeeded = false
+                Succeeded = true
 
             };
         }
@@ -617,12 +619,13 @@ public class AccountService : IAccountService
         }
 
         //validate the team Admin is being added to
-        var validTeam = _context.Teams.FirstOrDefault(x => x.Id == model.TeamId);
-        if (validTeam == null)
-            throw new AppException("Team Id is not valid");
+        if(model.TeamId != 0)
+        {
+            var validTeam = _context.Teams.FirstOrDefault(x => x.Id == model.TeamId);
+            if (validTeam == null)
+                throw new AppException("Team Id is not valid");
 
-
-
+        }
 
         //go ahead and provison the admin
         SendProvisonEmail(model.Email, model.RegistrationUrl);
@@ -632,8 +635,9 @@ public class AccountService : IAccountService
             Email = model.Email,
             Requested = DateTime.UtcNow,
             RequesterId = AdminId,
-            TeamId = model.TeamId
-        };
+            TeamId = model.TeamId,
+            SecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer)
+    };
 
         _context.ProvisionedAdmins.Add(pAdmin);
         _context.SaveChanges();

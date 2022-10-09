@@ -21,7 +21,9 @@ namespace BAT.api.Services
 
         Response<CandidateDto> GetCandidate(int Id);
         Response<CandidateDto> EditCandidate(UpdateCandidateDto candidateDto, int AdminId);
-        PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, int UserId, string route, Account account);
+        PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, string route);
+
+        PagedResponse<List<CandidateDto>> GetMyCandidates([FromQuery] PaginationFilter filter, int UserId, string route);
     }
 
     public class CandidateService : ICandidateService
@@ -87,7 +89,6 @@ namespace BAT.api.Services
                 }
 
             }
-
             var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
             candidateToAdd.CandidateImage = imagePath;
 
@@ -126,16 +127,8 @@ namespace BAT.api.Services
             if (existingCandidate == null)
                 throw new KeyNotFoundException("Candidate does not exist");
 
-            var dataToSave = _mapper.Map<Candidate>(candidateDto);
-            dataToSave.LastTimeModified = DateTime.Now;
-            dataToSave.MoidifiedBy = AdminId;
-            dataToSave.Created = existingCandidate.Created;
-            dataToSave.CreatedBy = existingCandidate.CreatedBy;
-
-
-            //upload image first 
             string imagePath = "";
-            if (candidateDto.CandidateImage != null && candidateDto.CandidateImage != "")
+            if (StringHelpers.IsBase64String(candidateDto.CandidateImage))
             {
                 var folderName = Path.Combine("AppUploads", "CandidatesImage");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -143,19 +136,18 @@ namespace BAT.api.Services
                 var fullPath = Path.Combine(pathToSave, fileName);
                 imagePath = Path.Combine(folderName, fileName);
                 imagePath = imagePath.Replace("\\", "//");
-
-                try
-                {
-                    var bytes = Convert.FromBase64String(candidateDto.CandidateImage);
-                    File.WriteAllBytes(fullPath, bytes);
-                }
-                catch (Exception)
-                {
-
-
-                }
-
+                var bytes = Convert.FromBase64String(candidateDto.CandidateImage);
+                File.WriteAllBytes(fullPath, bytes);
+                candidateDto.CandidateImage = imagePath;
             }
+
+            var dataToSave = _mapper.Map<Candidate>(candidateDto);
+            dataToSave.LastTimeModified = DateTime.Now;
+            dataToSave.MoidifiedBy = AdminId;
+            dataToSave.Created = existingCandidate.Created;
+            dataToSave.CreatedBy = existingCandidate.CreatedBy;
+            
+
 
             _context.Entry(existingCandidate).CurrentValues.SetValues(dataToSave);
             _context.SaveChanges();
@@ -171,7 +163,7 @@ namespace BAT.api.Services
 
         }
 
-        public PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, int UserId, string route, Account account)
+        public PagedResponse<List<CandidateDto>> GetAllCandidates([FromQuery] PaginationFilter filter, string route)
         {
             filter.sortBy = string.IsNullOrEmpty(filter.sortBy) ? "firstname" : filter.sortBy;
 
@@ -185,46 +177,56 @@ namespace BAT.api.Services
 
             if (!string.IsNullOrEmpty(filter.filterBy))
             {
-                if (account.Role == ROLES.SuperAdmin)
-                {
-                    pagedData = _context.Candidates.Where(x => x.FirstName.ToLower().Contains(filter.filterBy)
-       || x.FirstName.ToLower().Contains(filter.filterBy)
-       || x.LastName.ToLower().Contains(filter.filterBy)
-       || x.WhatAppNumber!.ToString().Contains(filter.filterBy)
-       || x.State.ToLower().Contains(filter.filterBy)
-       || x.Position.ToLower().Contains(filter.filterBy)
-       || x.AreaRepresenting.ToLower().Contains(filter.filterBy)
-       ).ToList();
-                }
-                else
-                {
-                    pagedData = _context.Candidates.Where(x => (x.FirstName.ToLower().Contains(filter.filterBy)
-     || x.FirstName.ToLower().Contains(filter.filterBy)
-     || x.LastName.ToLower().Contains(filter.filterBy)
-     || x.WhatAppNumber!.ToString().Contains(filter.filterBy)
-     || x.State.ToLower().Contains(filter.filterBy)
-     || x.Position.ToLower().Contains(filter.filterBy)
-     || x.AreaRepresenting.ToLower().Contains(filter.filterBy)) && x.CreatedBy == UserId
-     ).ToList();
-                }
-
+             
+                pagedData = _context.Candidates.Where(x => x.FirstName.ToLower().Contains(filter.filterBy) || x.FirstName.ToLower().Contains(filter.filterBy)
+                  || x.LastName.ToLower().Contains(filter.filterBy)
+                 || x.WhatAppNumber!.ToString().Contains(filter.filterBy) || x.State.ToLower().Contains(filter.filterBy) 
+                 || x.Position.ToLower().Contains(filter.filterBy)
+                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy)).ToList();
             }
             else
             {
-                if (account.Role == ROLES.SuperAdmin)
-                {
-                    pagedData = _context.Candidates.ToList();
-                }
-                else
-                {
-                    pagedData = _context.Candidates.Where(x => x.CreatedBy == UserId).ToList();
-                }
+               pagedData = _context.Candidates.ToList();
             }
             totalRecords = pagedData.Count;
 
             var candidateToReturn = _mapper.Map<List<CandidateDto>>(pagedData);
             candidateToReturn = GenericHelper.SortData(candidateToReturn, filter.sortBy, filter.sortOrder);
+            var pagedReponse = PaginationHelper.CreatePagedReponse<CandidateDto>(candidateToReturn, validFilter, totalRecords, _uriService, route);
+            return pagedReponse;
 
+        }
+
+
+        public PagedResponse<List<CandidateDto>> GetMyCandidates([FromQuery] PaginationFilter filter, int userId, string route)
+        {
+            filter.sortBy = string.IsNullOrEmpty(filter.sortBy) ? "firstname" : filter.sortBy;
+
+            List<Candidate> pagedData = new List<Candidate>();
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            int totalRecords = _context.Candidates.Count();
+
+
+            //filter from db directly
+
+            if (!string.IsNullOrEmpty(filter.filterBy))
+            {
+
+                pagedData = _context.Candidates.Where(x =>x.CreatedBy == userId &&  (x.FirstName.ToLower().Contains(filter.filterBy) || x.FirstName.ToLower().Contains(filter.filterBy)
+                  || x.LastName.ToLower().Contains(filter.filterBy)
+                 || x.WhatAppNumber!.ToString().Contains(filter.filterBy) || x.State.ToLower().Contains(filter.filterBy)
+                 || x.Position.ToLower().Contains(filter.filterBy)
+                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy))).ToList();
+            }
+            else
+            {
+                pagedData = _context.Candidates.Where(x=>x.CreatedBy == userId).ToList();
+            }
+            totalRecords = pagedData.Count;
+
+            var candidateToReturn = _mapper.Map<List<CandidateDto>>(pagedData);
+            candidateToReturn = GenericHelper.SortData(candidateToReturn, filter.sortBy, filter.sortOrder);
             var pagedReponse = PaginationHelper.CreatePagedReponse<CandidateDto>(candidateToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
 

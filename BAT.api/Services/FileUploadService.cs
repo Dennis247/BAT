@@ -25,11 +25,11 @@ namespace BAT.api.Services
 {
     public interface IFileUploadService
     {
-        PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
+        PagedResponse<List<UserFileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
         Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
 
-        Task<Response<int>> PreviewFile(IFormFile formFile, int AdminId);
+        Task<Response<int>> PreviewFile(IFormFile formFile, Account account);
 
         PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, Account account, string route);
 
@@ -42,12 +42,14 @@ namespace BAT.api.Services
 
         Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account);
 
-        PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account);
+        PagedResponse<List<UserProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account);
 
         PagedResponse<List<UserDataDto>> ViewProcessedFileContents(int FileId, PaginationFilter filter, string route);
 
 
         public Response<ProcessedFileDetailsDto> GetProcessedFileById(int Id);
+
+        PagedResponse<List<UploadError>> GetUploadedErrors(PaginationFilter filter, string route,Account Account);
     }
 
     public class FileUploadService : IFileUploadService
@@ -75,7 +77,7 @@ namespace BAT.api.Services
             _dapperDbConnection = dapperDbConnection;
         }
 
-        public PagedResponse<List<FileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account)
+        public PagedResponse<List<UserFileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account)
         {
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
             int totalRecords = 0;
@@ -100,11 +102,11 @@ namespace BAT.api.Services
             }
 
 
-            var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
+            var filesUploadToReturn = _mapper.Map<List<UserFileUploadDto>>(pagedData);
             filesUploadToReturn = GenericHelper.SortData(filesUploadToReturn, filter.sortBy, filter.sortOrder);
 
 
-            var pagedReponse = PaginationHelper.CreatePagedReponse<FileUploadDto>(filesUploadToReturn, validFilter, totalRecords, _uriService, route);
+            var pagedReponse = PaginationHelper.CreatePagedReponse<UserFileUploadDto>(filesUploadToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
 
         }
@@ -220,10 +222,25 @@ namespace BAT.api.Services
 
         }
 
-        public async Task<Response<int>> PreviewFile(IFormFile formFile, int AdminId)
+        public async Task<Response<int>> PreviewFile(IFormFile formFile, Account account)
         {
+            string uploadedFileName = ContentDispositionHeaderValue.Parse(formFile.ContentDisposition).FileName.Trim('"');
+            UploadError uploadError = new UploadError
+            {
+                DateUploaded = DateTime.UtcNow,
+                ErrorDetails = "",
+                UploadedBy = account.Id,
+                UploadedByName = $"{account.FirstName} {account.LastName}",
+                FileName = uploadedFileName,
+            };
+
+          
+
             if (formFile == null || formFile.Length <= 0)
             {
+
+                uploadError.ErrorDetails = "Uploaded file was Empty";
+                await  saveUploadedError(uploadError);
                 throw new AppException("File cannot be null or empty");
             }
 
@@ -241,7 +258,12 @@ namespace BAT.api.Services
                 //check if file has already been uploaded 
                 var existingFIle = _context.FileUploads.FirstOrDefault(x => x.FileName == formFile.FileName);
                 if (existingFIle != null)
+                {
+                    uploadError.ErrorDetails = "FIle has already been uploaded";
+                    await saveUploadedError(uploadError);
                     throw new AppException("This file has already been uploaded");
+                }
+                 
 
                 var folderName = Path.Combine("AppUploads", "UserData");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -281,7 +303,7 @@ namespace BAT.api.Services
                     List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
                     fileUpload = new FileUpload
                     {
-                        UploadedBy = AdminId,
+                        UploadedBy = account.Id,
                         DateUploaded = DateTime.UtcNow,
                         FileName = formFile.FileName,
                         FileType = fileExtension,
@@ -329,6 +351,12 @@ namespace BAT.api.Services
 
                                         //      throw;
                                     }
+
+                                    uploadError.ErrorDetails = "{item} is not a valid header,\nHeader must be part of" +
+                                        $" {JsonConvert.SerializeObject(Constants.Columns)}";
+                                    await saveUploadedError(uploadError);
+
+
                                     throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
                                         $" {JsonConvert.SerializeObject(Constants.Columns)}");
                                 }
@@ -368,6 +396,10 @@ namespace BAT.api.Services
                                     //      throw;
                                 }
 
+                                uploadError.ErrorDetails = "{item} is not a valid header,\nHeader must be part of" +
+                                  $" {JsonConvert.SerializeObject(Constants.Columns)}";
+                                await saveUploadedError(uploadError);
+
                                 throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
                                     $" {JsonConvert.SerializeObject(Constants.Columns)}");
                             }
@@ -381,7 +413,7 @@ namespace BAT.api.Services
                         userDatas.Add(new UserData
                         {
                             Created = DateTime.UtcNow,
-                            CreatedBy = AdminId,
+                            CreatedBy = account.Id,
                             Email = item.Email,
                             FileId = fileUpload.Id,
                             FirstName = item.FirstName,
@@ -437,6 +469,9 @@ namespace BAT.api.Services
 
 
             }
+
+            uploadError.ErrorDetails = "FIle format not supported\nOnly .xlsx and .csv format is supported";
+            await saveUploadedError(uploadError);
 
             throw new AppException("Only .xlsx and .csv format is supported");
 
@@ -846,7 +881,7 @@ namespace BAT.api.Services
 
 
 
-        public PagedResponse<List<ProcessedFileDetailsDto>> GetProcessedFiles(PaginationFilter filter, string route, Account Account)
+        public PagedResponse<List<UserProcessedFileDetailsDto>> GetProcessedFiles(PaginationFilter filter, string route, Account Account)
         {
             var pagedData = new List<ProcessedFileDetails>();
             int totalRecords = 0;
@@ -863,9 +898,9 @@ namespace BAT.api.Services
             }
 
 
-            var processedUploadToReturn = _mapper.Map<List<ProcessedFileDetailsDto>>(pagedData);
+            var processedUploadToReturn = _mapper.Map<List<UserProcessedFileDetailsDto>>(pagedData);
             processedUploadToReturn = GenericHelper.SortData(processedUploadToReturn, filter.sortBy, filter.sortOrder);
-            var pagedReponse = PaginationHelper.CreatePagedReponse<ProcessedFileDetailsDto>(processedUploadToReturn, validFilter, totalRecords, _uriService, route);
+            var pagedReponse = PaginationHelper.CreatePagedReponse<UserProcessedFileDetailsDto>(processedUploadToReturn, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
 
         }
@@ -921,45 +956,33 @@ namespace BAT.api.Services
         }
 
 
-        //
-        private List<AnalyzeDataDto> SortData(List<AnalyzeDataDto> data, string sortField, string sortOrder)
+        public PagedResponse<List<UploadError>> GetUploadedErrors(PaginationFilter filter, string route, Account Account)
         {
-            try
+            var pagedData = new List<UploadError>();
+            int totalRecords = 0;
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            if (Account.Role == ROLES.SuperAdmin)
             {
-                string SortField = sortField;
-                string SortOrder = sortOrder;
-
-
-                if (string.IsNullOrEmpty(sortField))
-                {
-                    SortField = "Id";
-                    SortOrder = "asc";
-                }
-
-                if (string.IsNullOrEmpty(sortOrder))
-                {
-                    SortOrder = "asc";
-                }
-
-                SortField = StringHelpers.ToTitleCase(SortField);
-
-
-                var propertyInfo = typeof(AnalyzeDataDto).GetProperty(SortField);
-                if (SortOrder == "asc")
-                {
-                    data = data.OrderBy(s => propertyInfo.GetValue(s, null)).ToList();
-                }
-                else
-                {
-                    data = data.OrderByDescending(s => propertyInfo.GetValue(s, null)).ToList();
-                }
-                return data;
+                pagedData = _context.UploadErrors.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                totalRecords = _context.ProcessedFileDetails.Count();
             }
-            catch (Exception)
+            else
             {
-
-                return data;
+                pagedData = _context.UploadErrors.Where(x => x.UploadedBy == Account.Id).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                totalRecords = _context.ProcessedFileDetails.Where(x => x.Administrator == Account.Id).Count();
             }
+
+            pagedData = GenericHelper.SortData(pagedData, filter.sortBy, filter.sortOrder);
+            var pagedReponse = PaginationHelper.CreatePagedReponse<UploadError>(pagedData, validFilter, totalRecords, _uriService, route);
+            return pagedReponse;
+        }
+
+
+        //
+        private async Task saveUploadedError(UploadError uploadError)
+        {
+            _context.Add(uploadError);
+           await _context.SaveChangesAsync();
         }
     }
 }

@@ -43,6 +43,8 @@ namespace BAT.api.Data
         public DbSet<AnalyzeData> AnalyzeDatas { get; set; }
         public DbSet<ExportRequest> ExportRequests { get; set; }
 
+        public DbSet<UploadError> UploadErrors { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

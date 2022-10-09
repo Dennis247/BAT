@@ -23,11 +23,20 @@ namespace BAT.api.Controllers
         public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter, int UserId)
         {
             var route = Request.Path.Value;
-            var response = _candidateService.GetAllCandidates(filter, UserId,route,Account);
+            var response = _candidateService.GetAllCandidates(filter,route);
             return Ok(response);
         }
 
- 
+        [AllowAnonymous]
+        [HttpGet("GetMyCandidates")]
+        public IActionResult GetMyCandidates([FromQuery] PaginationFilter filter, int UserId)
+        {
+            var route = Request.Path.Value;
+            var response = _candidateService.GetMyCandidates(filter, UserId, route);
+            return Ok(response);
+        }
+
+
         [HttpPost("AddCandidate")]
         public IActionResult AddCandidate([FromBody]AddCandidateDto candidateDto)
         {

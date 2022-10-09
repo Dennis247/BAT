@@ -13,6 +13,7 @@ namespace BAT.api.Models.Entities
         public int RequesterId { get; set; }
         public bool IsPrivateAdmin { get; set; }
         public bool HasCompletedRegistration { get; set; }
-    
+        public string SecretAnswer { get; set; }
+
     }
 }

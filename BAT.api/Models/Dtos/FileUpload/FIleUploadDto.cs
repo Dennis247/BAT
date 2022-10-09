@@ -17,6 +17,19 @@ namespace BAT.api.Models.Dtos.FileUpload
         public string Fields { get; set; }
     }
 
+    public class UserFileUploadDto
+    {
+        public int Id { get; set; }
+        public string FileName { get; set; }
+        public DateTime DateUploaded { get; set; }
+        public string FileType { get; set; }
+        public int UploadedBy { get; set; }
+        public string HourUploaded { get; set; }
+        public double FileSize { get; set; }
+
+        public string Fields { get; set; }
+    }
+
     public class ViewFileId
     {
         public int FileId { get; set; } 
