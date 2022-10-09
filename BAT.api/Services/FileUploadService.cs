@@ -964,12 +964,12 @@ namespace BAT.api.Services
             if (Account.Role == ROLES.SuperAdmin)
             {
                 pagedData = _context.UploadErrors.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
-                totalRecords = _context.ProcessedFileDetails.Count();
+                totalRecords = _context.UploadErrors.Count();
             }
             else
             {
                 pagedData = _context.UploadErrors.Where(x => x.UploadedBy == Account.Id).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
-                totalRecords = _context.ProcessedFileDetails.Where(x => x.Administrator == Account.Id).Count();
+                totalRecords = _context.UploadErrors.Where(x => x.UploadedBy == Account.Id).Count();
             }
 
             pagedData = GenericHelper.SortData(pagedData, filter.sortBy, filter.sortOrder);

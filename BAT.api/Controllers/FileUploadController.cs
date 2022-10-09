@@ -69,6 +69,13 @@ namespace BAT.api.Controllers
 
 
 
+        [HttpGet("GetUploadErrors")]
+        public IActionResult GetUploadErrors([FromQuery] PaginationFilter filter)
+        {
+            var route = Request.Path.Value;
+            var response = _fileUploadService.GetUploadedErrors(filter, route, Account);
+            return Ok(response);
+        }
 
 
 

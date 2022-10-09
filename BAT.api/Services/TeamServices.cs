@@ -18,6 +18,7 @@ namespace BAT.api.Services
         Response<int> AddTeam(AddTeam addTeam, int AdminId);
         Response<string> DeleteTeam(int Id);
         Response<List<TeamDetails>> GetAllTeams();
+      //  Response<TeamDetails> GetTeamById(int Id);
         Response<string> UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission, int AdminId);
         Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<TeamWithUserAndPriviledges> GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId);
@@ -280,7 +281,7 @@ namespace BAT.api.Services
                 CretaedBy = team.CretaedBy,
                 Name = team.Name,
                 IsDeleted = team.IsDeleted,
-                Accounts = accountsToReturn,
+                Users = accountsToReturn,
                 Priviledges = permissionToReturn
             };
 
@@ -323,5 +324,7 @@ namespace BAT.api.Services
             };
             
         }
+
+      
     }
 }

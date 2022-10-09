@@ -20,7 +20,7 @@ namespace BAT.api.Controllers
 
         [AllowAnonymous]
         [HttpGet("GetAllCandidates")]
-        public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter, int UserId)
+        public IActionResult GetAllCandidates([FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
             var response = _candidateService.GetAllCandidates(filter,route);
@@ -29,10 +29,10 @@ namespace BAT.api.Controllers
 
         [AllowAnonymous]
         [HttpGet("GetMyCandidates")]
-        public IActionResult GetMyCandidates([FromQuery] PaginationFilter filter, int UserId)
+        public IActionResult GetMyCandidates([FromQuery] PaginationFilter filter)
         {
             var route = Request.Path.Value;
-            var response = _candidateService.GetMyCandidates(filter, UserId, route);
+            var response = _candidateService.GetMyCandidates(filter, Account.Id, route);
             return Ok(response);
         }
 

@@ -78,7 +78,7 @@ namespace BAT.api.Models.Dtos.TeamDtos
         public int CretaedBy { get; set; }
         public bool IsDeleted { get; set; }
 
-        public List<AccountResponse> Accounts { get; set; }
+        public List<AccountResponse> Users { get; set; }
 
         public List<PermissionDto> Priviledges { get; set; }
 

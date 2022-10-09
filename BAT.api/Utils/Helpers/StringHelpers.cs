@@ -26,9 +26,10 @@ namespace BAT.api.Utils.Helpers
             catch (Exception)
             {
                 // Handle the exception
+                return false;
             }
 
-            return false;
+   
         }
 
         public static string getHourActivated(int Hour)

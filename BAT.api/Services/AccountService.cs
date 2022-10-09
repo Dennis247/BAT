@@ -345,15 +345,15 @@ public class AccountService : IAccountService
     {
 
         //check if it has reached maximum admin count
-        if (_context.Accounts.Where(x=>!x.IsAdminPrivate).Count() == 5)
-        {
-            return new Response<int>
-            {
-                Data = 0,
-                Message = "Maximum number of Public Admin has been Registered",
-                Succeeded = false
-            };
-        }
+        //if (_context.Accounts.Where(x=>!x.IsAdminPrivate).Count() == 5)
+        //{
+        //    return new Response<int>
+        //    {
+        //        Data = 0,
+        //        Message = "Maximum number of Public Admin has been Registered",
+        //        Succeeded = false
+        //    };
+        //}
 
         //validate the secret answer
 
@@ -371,9 +371,20 @@ public class AccountService : IAccountService
             throw new KeyNotFoundException("Your profile has not been provisoned as a Public Admin.");
         }
 
+
+
         // check if user already exist using first name , last name and password
 
         var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
+        //check if this admin secret answer is valid
+        var validSecretAnswer = _context.ProvisionedAdmins.FirstOrDefault(x => x.SecretAnswer == secretHash && x.Email == model.Email);
+        if (validSecretAnswer == null)
+        {
+            throw new KeyNotFoundException("Secret answer is not valid");
+        }
+
+
         if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
         {
             throw new AppException("Your information matches an existing user,\nplease fill in the correct information or sign in");
@@ -451,6 +462,14 @@ public class AccountService : IAccountService
         // check if user already exist using first name , last name and password
 
         var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
+
+        //check if this admin secret answer is valid
+        var validSecretAnswer = _context.ProvisionedAdmins.FirstOrDefault(x => x.SecretAnswer == secretHash && x.Email == model.Email);
+        if (validSecretAnswer == null)
+        {
+            throw new KeyNotFoundException("Secret answer is not valid");
+        }
 
         if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
         {
@@ -588,7 +607,7 @@ public class AccountService : IAccountService
         //check if secret answer has been used already to provison admin
         var encryptedSecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer);
         var existingSecretAnswer = _context.ProvisionedAdmins.FirstOrDefault(x=>x.SecretAnswer == encryptedSecretAnswer);
-        if(encryptedSecretAnswer != null)
+        if(existingSecretAnswer != null)
         {
             throw new AppException("Secret Answer has already been used for a previous Admin");
         }
@@ -636,6 +655,7 @@ public class AccountService : IAccountService
             Requested = DateTime.UtcNow,
             RequesterId = AdminId,
             TeamId = model.TeamId,
+            IsPrivateAdmin = model.IsPrivateAdmin,
             SecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer)
     };
 
@@ -671,7 +691,7 @@ public class AccountService : IAccountService
         var users = _mapper.Map<IList<AccountResponse>>(accounts);
         foreach (var item in users)
         {
-            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.AdminId);
+            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.TeamId);
         }
         return new Response<IEnumerable<AccountResponse>>
         {
@@ -687,7 +707,7 @@ public class AccountService : IAccountService
         var users = _mapper.Map<IList<AccountResponse>>(accounts);
         foreach (var item in users)
         {
-            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.AdminId);
+            item.Teams = _context.AdminTeams.Where(x => x.AdminId == item.Id).Select(x => x.TeamId);
         }
         return new Response<IEnumerable<AccountResponse>>
         {

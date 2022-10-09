@@ -68,7 +68,7 @@ namespace BAT.api.Services
 
             //upload image first 
             string imagePath = "";
-            if (candidateDto.CandidateImage != null)
+            if (StringHelpers.IsBase64String(candidateDto.CandidateImage))
             {
                 var folderName = Path.Combine("AppUploads", "CandidatesImage");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -90,11 +90,12 @@ namespace BAT.api.Services
 
             }
             var candidateToAdd = _mapper.Map<Candidate>(candidateDto);
-            candidateToAdd.CandidateImage = imagePath;
+           
 
             candidateToAdd.WhatAppNumber = candidateToAdd.WhatAppNumber == null ? "" : candidateDto.WhatAppNumber;
             candidateToAdd.Created = DateTime.Now;
             candidateToAdd.CreatedBy = AdminId;
+            candidateToAdd.CandidateImage = candidateToAdd.CandidateImage.Replace(_appSettings.BaseUrl, "");
             _context.Candidates.Add(candidateToAdd);
             _context.SaveChanges();
 
@@ -146,13 +147,16 @@ namespace BAT.api.Services
             dataToSave.MoidifiedBy = AdminId;
             dataToSave.Created = existingCandidate.Created;
             dataToSave.CreatedBy = existingCandidate.CreatedBy;
-            
+
+            dataToSave.CandidateImage = dataToSave.CandidateImage.Replace(_appSettings.BaseUrl, "");
+
+
 
 
             _context.Entry(existingCandidate).CurrentValues.SetValues(dataToSave);
             _context.SaveChanges();
 
-            var caniddateToResturn = _mapper.Map<CandidateDto>(existingCandidate);
+            var caniddateToResturn = _mapper.Map<CandidateDto>(dataToSave);
             return new Response<CandidateDto>
             {
                 Data = caniddateToResturn,
