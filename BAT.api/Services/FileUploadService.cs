@@ -480,6 +480,7 @@ namespace BAT.api.Services
         public PagedResponse<List<FileUploadDto>> GetUserPreviewedFiles(PaginationFilter filter, Account Account, string route)
         {
             var pagedData = new List<FileUpload>();
+            int totalRecords = 0;
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
             if (Account.Role == ROLES.SuperAdmin)
             {
@@ -488,6 +489,9 @@ namespace BAT.api.Services
          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
          .Take(validFilter.PageSize)
          .ToList();
+
+                totalRecords = _context.FileUploads.Count(x => x.FileUploadType == FileUploadType.UserData
+      && x.IsInPreviewMode == true);
             }
             else
             {
@@ -496,9 +500,12 @@ namespace BAT.api.Services
          .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
          .Take(validFilter.PageSize)
          .ToList();
+
+                totalRecords = _context.FileUploads.Count(x => x.FileUploadType == FileUploadType.UserData
+      && x.IsInPreviewMode == true && x.UploadedBy == Account.Id);
             }
 
-            var totalRecords = _context.FileUploads.Count();
+         
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
             filesUploadToReturn = GenericHelper.SortData(filesUploadToReturn, filter.sortBy, filter.sortOrder);
 

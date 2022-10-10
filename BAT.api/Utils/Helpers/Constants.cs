@@ -7,10 +7,25 @@
             "firstname",
             "lastname",
             "phonenumber",
+            "MobileNumer",
             "state",
             "gender",
             "email",
-            "age"
+            "age",
+            "DateOfBirth",
+            "Occupation",
+            "PollingUnit",
+            "VotingRAC",
+            "VotingLGA",
+            "StateOfResidence",
+            "LGA",
+            "TelcoProvider",
+            "MobilePhone",
+            "AirtimeUsage",
+            "WorkStatus",
+            "PVC",
+            "IncomeClass",
+            "AgeCohorts",
         };
 
 

@@ -17,6 +17,11 @@ public class AutoMapperProfile : Profile
     // mappings between model and entity objects
     public AutoMapperProfile()
     {
+        
+
+         CreateMap<Account, AccountForUser>();
+        CreateMap<AccountForUser, Account>();
+
         CreateMap<Account, AccountResponse>();
 
         CreateMap<Account, AuthenticateResponse>();
@@ -90,6 +95,9 @@ public class AutoMapperProfile : Profile
         CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>();
         CreateMap<ProcessedFileDetails, ProcessedFileDetailsDto>().ForMember(x => x.DownloadUrl, opt => opt.MapFrom<ProcessedFileDetailsResolver>());
 
+
+        CreateMap<ProcessedFileDetails, UserProcessedFileDetailsDto>();
+        CreateMap<UserProcessedFileDetailsDto, ProcessedFileDetails>();
 
     }
 

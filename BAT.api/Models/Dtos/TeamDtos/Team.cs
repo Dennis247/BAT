@@ -70,6 +70,17 @@ namespace BAT.api.Models.Dtos.TeamDtos
 
     }
 
+    public class TeamWithUsers
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public List<AccountForUser> Users { get; set; }
+        public List<PermissionDto> Priviledges { get; set; }
+
+
+    }
+
+
     public class TeamWithUserAndPriviledges
     {
         public int Id { get; set; }

@@ -71,10 +71,9 @@
             {
                 firstQuery = $"select * from UserDatas where FileID = {FileId} ";
                 string betweenPart = "";
-                for (int i = 0; i < ORValues.Count; i++)
-                {
-                    betweenPart = $"{firstPArt.Field} >= {lowerRange} &&  {firstPArt.Field}<= {higherRange} ";
-                }
+        
+                    betweenPart = $"{firstPArt.Field} >= {lowerRange} AND  {firstPArt.Field}<= {higherRange} ";
+                
                 query = $"{firstQuery} AND ({betweenPart})";
              
 

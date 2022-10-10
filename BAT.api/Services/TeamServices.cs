@@ -17,13 +17,15 @@ namespace BAT.api.Services
 
         Response<int> AddTeam(AddTeam addTeam, int AdminId);
         Response<string> DeleteTeam(int Id);
-        Response<List<TeamDetails>> GetAllTeams();
-      //  Response<TeamDetails> GetTeamById(int Id);
+  
         Response<string> UpdateTeamPermissions(UpdateTeamPermission updateTeamPermission, int AdminId);
         Response<TeamDetails> UpdateTeam(UpdateTeam updateTeam, int AdminId);
         Response<TeamWithUserAndPriviledges> GetTeamsWithUsersAndPriviledges(TeamDetailsId teamDetailsId);
          Response<string> UpdateAdminToTeam(UpdateAdminToTeam updateAdminTeam, int AddedBy);
+
+         Response<List<TeamWithUsers>> GetAllTeams();
     }
+
 
 
     public class TeamServices : ITeamServices
@@ -114,19 +116,6 @@ namespace BAT.api.Services
                 Data = "",
                 Message = "Admin Team updated Sucessful",
                 Succeeded = true,
-            };
-        }
-
-        public Response<List<TeamDetails>> GetAllTeams()
-        {
-            var allTeams = _context.Teams.ToList();
-            var teamToReturn = _mapper.Map<List<TeamDetails>>(allTeams);
-            return new Response<List<TeamDetails>>
-            {
-                Data = teamToReturn,
-                Succeeded = true,
-                Message = "sucessful"
-
             };
         }
 
@@ -266,7 +255,6 @@ namespace BAT.api.Services
                 throw new AppException("Invalid Team Id");
             var teamPermissions = _context.TeamPermissions.Where(x=>x.TeamId == teamDetailsId.TeamId).ToList();
             var permissions = _context.Permissions.Where(pm => (teamPermissions.Select(x => x.PermissionId).Contains(pm.Id))).ToList();
-
             var permissionToReturn = _mapper.Map<List<PermissionDto>>(permissions);
 
 
@@ -325,6 +313,53 @@ namespace BAT.api.Services
             
         }
 
-      
+       public Response<List<TeamWithUsers>> GetAllTeams()
+        {
+            List<TeamWithUsers> teamWithUserList = new List<TeamWithUsers>();
+            var teamList = _context.Teams.ToList();
+            var teamAdmins = _context.AdminTeams.ToList();
+            var allUsers = _context.Accounts.ToList();
+            var allPermissions = _context.TeamPermissions.ToList();
+            var Dbpermissions = _context.Permissions.ToList();
+
+          
+
+            foreach (var item in teamList)
+            {
+                var adminIds = teamAdmins.Where(x => x.TeamId == item.Id).Select(x=>x.AdminId);
+                var admins = allUsers.Where(x => adminIds.Contains(x.Id)).ToList();
+
+                var teamPermissions = allPermissions.Where(x => x.TeamId == item.Id).ToList();
+                var permissions = Dbpermissions.Where(pm => (teamPermissions.Select(x => x.PermissionId).Contains(pm.Id))).ToList();
+                var permissionToReturn = _mapper.Map<List<PermissionDto>>(permissions);
+
+
+                TeamWithUsers teamWithUser = new TeamWithUsers
+                {
+                    Name = item.Name,
+                    Id = item.Id,
+                    Users = _mapper.Map<List<AccountForUser>>(admins),
+                    Priviledges = permissionToReturn
+
+                };
+                teamWithUserList.Add(teamWithUser);
+
+
+
+                //get permissions of the team
+            }
+
+       
+
+
+            return new Response<List<TeamWithUsers>>
+            {
+                Data = teamWithUserList,
+                Message = "sucessfull",
+                Succeeded = true
+            };
+        }
+
+
     }
 }

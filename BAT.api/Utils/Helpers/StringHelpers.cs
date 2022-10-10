@@ -56,13 +56,24 @@ namespace BAT.api.Utils.Helpers
             return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(title.ToLower());
         }
 
+
+     
     }
 
 
 
    public class GenericHelper
     {
-        public static List< T > SortData<T>(List<T> data, string sortField, string sortOrder)
+        public static PropertyInfo? GetProperty<T>(string field)
+        {
+            var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var propertyInfo = propertyInfos.FirstOrDefault(pi => pi.Name.Equals(field, 
+                StringComparison.InvariantCultureIgnoreCase));
+            return propertyInfo;
+        }
+
+
+        public static List<T> SortData<T>(List<T> data, string sortField, string sortOrder)
         {
             try
             {

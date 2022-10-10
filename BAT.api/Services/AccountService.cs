@@ -429,7 +429,7 @@ public class AccountService : IAccountService
         _context.SaveChanges();
 
         // send email
-        sendVerificationEmail(account, origin);
+        //sendVerificationEmail(account, origin);
 
         return new Response<int>
         {
@@ -515,7 +515,7 @@ public class AccountService : IAccountService
         _context.SaveChanges();
 
         // send email
-        sendVerificationEmail(account, origin);
+    //    sendVerificationEmail(account, origin);
 
         return new Response<int>
         {

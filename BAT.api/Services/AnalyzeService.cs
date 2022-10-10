@@ -22,6 +22,7 @@ using Newtonsoft.Json;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Net.Http.Headers;
 
 namespace BAT.api.Services
@@ -68,6 +69,15 @@ namespace BAT.api.Services
             _dapperDbConnection = dapperDbConnection;
         }
 
+        private static Expression<Func<UserData, string>> GetColumnName(string property)
+        {
+            var userdata = Expression.Parameter(typeof(UserData), "u");
+            var menuProperty = Expression.PropertyOrField(userdata, property);
+            var lambda = Expression.Lambda<Func<UserData, string>>(menuProperty, userdata);
+
+            return lambda;
+        }
+
         public Response<AnalyzeResponseResult> AnalyzeData(AnalyzeRequest analyzeRequest, Account account)
         {
             List<AnalyzeResponse> analyzeResponse = new List<AnalyzeResponse>();
@@ -80,65 +90,16 @@ namespace BAT.api.Services
 
             foreach (var item in analyzeRequest.AnalyzeDtos)
             {
-           
-                if(item.Field.ToLower() == Constants.Columns[0])
+
+                  var prop = GenericHelper.GetProperty<UserData>(item.Field);
+                if(prop == null)
                 {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.FirstName into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
+                    throw new AppException($"{item.Field} is not a valid field name");
                 }
+    
 
-              else  if (item.Field.ToLower() == Constants.Columns[1])
-                {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.LastName into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-                }
-
-                else if (item.Field.ToLower() == Constants.Columns[2])
-                {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.PhoneNumber into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-                }
-
-                else if (item.Field.ToLower() == Constants.Columns[3])
-                {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.State into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-                }
-
-                else if (item.Field.ToLower() == Constants.Columns[4])
-                {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.Gender into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-
-                }
-                else if (item.Field.ToLower() == Constants.Columns[5])
-                {
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.Email into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-
-                }
-
-                else if (item.Field.ToLower() == Constants.Columns[6])
-                {
-
-                    processedData = from p in _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId)
-                                    group p by p.Age into g
-                                    select new { key = g.Key, Value = g.ToList().Count() };
-                }
-
-
-
-
-
-
-             
-
+               processedData = _context.UserDatas.Where(x => x.FileId == analyzeRequest.FileId).GroupBy(GetColumnName(prop.Name).Compile(), 
+                        (key, g) => new { key = key, Value = g.ToList().Count() });
 
                 List<Models.Dtos.Analyze.Data> graph = new List<Models.Dtos.Analyze.Data>();
 
