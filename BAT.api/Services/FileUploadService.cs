@@ -338,7 +338,7 @@ namespace BAT.api.Services
                             foreach (var item in headers)
                             {
                                 fileHeaders.Add(item.ToLower());
-                                if (Constants.Columns.Contains(item.ToLower()))
+                                if (!Constants.Columns.Contains(item.ToLower()))
                                 {
                                     _context.FileUploads.Remove(fileUpload);
                                     _context.SaveChanges();
@@ -346,16 +346,11 @@ namespace BAT.api.Services
                                     {
                                         File.Delete(fullPath);
                                     }
-                                    catch (Exception)
-                                    {
+                                    catch (Exception) {}
 
-                                        //      throw;
-                                    }
-
-                                    uploadError.ErrorDetails = "{item} is not a valid header,\nHeader must be part of" +
+                                    uploadError.ErrorDetails = $"{item} is not a valid header,\nHeader must be part of" +
                                         $" {JsonConvert.SerializeObject(Constants.Columns)}";
                                     await saveUploadedError(uploadError);
-
 
                                     throw new AppException($"{item} is not a valid header,\nHeader must be part of" +
                                         $" {JsonConvert.SerializeObject(Constants.Columns)}");
@@ -392,11 +387,9 @@ namespace BAT.api.Services
                                 }
                                 catch (Exception)
                                 {
-
-                                    //      throw;
                                 }
 
-                                uploadError.ErrorDetails = "{item} is not a valid header,\nHeader must be part of" +
+                                uploadError.ErrorDetails = $"{item} is not a valid header,\nHeader must be part of" +
                                   $" {JsonConvert.SerializeObject(Constants.Columns)}";
                                 await saveUploadedError(uploadError);
 
