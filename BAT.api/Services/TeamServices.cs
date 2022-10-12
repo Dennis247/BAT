@@ -221,9 +221,32 @@ namespace BAT.api.Services
 
             var existingPermissions = _context.Permissions;
 
+            List<AdminTeam> teamAdmins =new List<AdminTeam>();
+
+            //delete old team permissions 
+            if (updateTeamPermission.AdminIds.Any())
+            {
+                var oldAdminTeams = _context.AdminTeams.Where(x => x.TeamId == updateTeamPermission.TeamId);
+                _context.RemoveRange(oldAdminTeams);
+                _context.SaveChanges();
+                
+                foreach (var item in updateTeamPermission.AdminIds)
+                {
+                    teamAdmins.Add(new AdminTeam
+                    {
+                        AddedBy = AdminId,
+                        AdminId = item,
+                        TeamId = updateTeamPermission.TeamId,
+                        Created = DateTime.UtcNow,
+
+                    });
+                }
+                _context.AdminTeams.AddRange(teamAdmins);
+            }
+
 
             List<TeamPermission> teamPermissions = new List<TeamPermission>();
-            foreach (var permissionId in updateTeamPermission.Permissions)
+            foreach (var permissionId in updateTeamPermission.PriviledgesId)
             {
                 if (existingPermissions.Select(x => x.Id).Contains(permissionId))
                     teamPermissions.Add(new TeamPermission { 
@@ -234,6 +257,7 @@ namespace BAT.api.Services
                     });
             }
 
+            existingTeam.Name = updateTeamPermission.Name;
             _context.TeamPermissions.AddRange(teamPermissions);
             _context.SaveChanges();
 

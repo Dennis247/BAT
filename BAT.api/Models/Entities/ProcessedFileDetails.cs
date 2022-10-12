@@ -16,7 +16,9 @@
         public string? Title { get; set; }
         public int ProcessedItemCount { get; set; }
 
-       public int UploadedFileCount { get; set; }   
+       public int UploadedFileCount { get; set; }
+
+        public string? HourProcessed { get; set; }
 
     }
 

@@ -77,8 +77,8 @@ namespace BAT.api.Utils.Helpers
         {
             try
             {
-                string SortField = sortField;
-                string SortOrder = sortOrder;
+                string SortField = sortField.ToLower();
+                string SortOrder = sortOrder.ToLower();
 
 
                 if (string.IsNullOrEmpty(sortField))

@@ -38,18 +38,18 @@ namespace BAT.api.Services
         PagedResponse<List<UserDataDto>> ViewFileContents(int FileId, PaginationFilter filter, string route);
 
         Response<string> DeleteFile(int FileId);
-        Response<string> UpdateFile(UpdateFile updateFile, int AdminId);
+         Task<Response<string>> UpdateFile(UpdateFile updateFile, Account account);
 
         Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account);
 
-        PagedResponse<List<UserProcessedFileDetailsDto>> GetProcessedFiles( PaginationFilter filter, string route, Account Account);
+        PagedResponse<List<UserProcessedFileDetailsDto>> GetProcessedFiles(PaginationFilter filter, string route, Account Account);
 
         PagedResponse<List<UserDataDto>> ViewProcessedFileContents(int FileId, PaginationFilter filter, string route);
 
 
         public Response<ProcessedFileDetailsDto> GetProcessedFileById(int Id);
 
-        PagedResponse<List<UploadError>> GetUploadedErrors(PaginationFilter filter, string route,Account Account);
+        PagedResponse<List<UploadError>> GetUploadedErrors(PaginationFilter filter, string route, Account Account);
     }
 
     public class FileUploadService : IFileUploadService
@@ -234,13 +234,13 @@ namespace BAT.api.Services
                 FileName = uploadedFileName,
             };
 
-          
+
 
             if (formFile == null || formFile.Length <= 0)
             {
 
                 uploadError.ErrorDetails = "Uploaded file was Empty";
-                await  saveUploadedError(uploadError);
+                await saveUploadedError(uploadError);
                 throw new AppException("File cannot be null or empty");
             }
 
@@ -263,7 +263,7 @@ namespace BAT.api.Services
                     await saveUploadedError(uploadError);
                     throw new AppException("This file has already been uploaded");
                 }
-                 
+
 
                 var folderName = Path.Combine("AppUploads", "UserData");
                 var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
@@ -337,8 +337,9 @@ namespace BAT.api.Services
                             var headers = csv.HeaderRecord;
                             foreach (var item in headers)
                             {
-                                fileHeaders.Add(item.ToLower());
-                                if (!Constants.Columns.Contains(item.ToLower()))
+                                var updatedItem = item.Replace(" ", "");
+                                fileHeaders.Add(updatedItem.ToLower());
+                                if (!Constants.Columns.Contains(updatedItem.ToLower()))
                                 {
                                     _context.FileUploads.Remove(fileUpload);
                                     _context.SaveChanges();
@@ -346,7 +347,7 @@ namespace BAT.api.Services
                                     {
                                         File.Delete(fullPath);
                                     }
-                                    catch (Exception) {}
+                                    catch (Exception) { }
 
                                     uploadError.ErrorDetails = $"{item} is not a valid header,\nHeader must be part of" +
                                         $" {JsonConvert.SerializeObject(Constants.Columns)}";
@@ -376,8 +377,9 @@ namespace BAT.api.Services
 
                         foreach (var item in headers)
                         {
-                            fileHeaders.Add(item);
-                            if (!Constants.Columns.Contains(item.ToLower()))
+                            var updatedItem = item.Replace(" ", "");
+                            fileHeaders.Add(updatedItem.ToLower());
+                            if (!Constants.Columns.Contains(updatedItem.ToLower()))
                             {
                                 _context.FileUploads.Remove(fileUpload);
                                 _context.SaveChanges();
@@ -498,7 +500,7 @@ namespace BAT.api.Services
       && x.IsInPreviewMode == true && x.UploadedBy == Account.Id);
             }
 
-         
+
             var filesUploadToReturn = _mapper.Map<List<FileUploadDto>>(pagedData);
             filesUploadToReturn = GenericHelper.SortData(filesUploadToReturn, filter.sortBy, filter.sortOrder);
 
@@ -579,14 +581,16 @@ namespace BAT.api.Services
             };
         }
 
-        public Response<string> UpdateFile(UpdateFile updateFile, int AdminId)
+        public async Task<Response<string>> UpdateFile(UpdateFile updateFile, Account account)
         {
-            var existingFile = _context.FileUploads.FirstOrDefault(x => x.Id == updateFile.FileId);
+            string fullPath = "";
+            FileUpload existingFile = _context.FileUploads.FirstOrDefault(x => x.Id == updateFile.FileId);
             if (existingFile == null)
                 throw new AppException("Inavlid file Id");
 
             List<UserImportlDataDto> userDataToSave = new List<UserImportlDataDto>();
-
+            string headerFields  = "";
+            string[] headers = { };
             string fileExtension = Path.GetExtension(updateFile.FileContents.FileName);
 
             if (fileExtension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
@@ -598,8 +602,8 @@ namespace BAT.api.Services
                     var folderName = Path.Combine("AppUploads", "UpdatedeUserData");
                     var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
 
-                    var fileName = ContentDispositionHeaderValue.Parse(updateFile.FileContents.ContentDisposition).FileName.Trim('"');
-                    var fullPath = Path.Combine(pathToSave, fileName);
+                    var fileName =Guid.NewGuid().ToString() + updateFile.FileContents.FileName;
+                     fullPath = Path.Combine(pathToSave, fileName);
                     var filePath = Path.Combine(folderName, fileName);
                     filePath = filePath.Replace("\\", "//");
                     using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -607,26 +611,23 @@ namespace BAT.api.Services
                         updateFile.FileContents.CopyTo(stream);
                     }
 
-
                     if (fileExtension.ToLower() == ".xlsx")
                     {
-                        //Todo read file from excel and bulk insert into db
-                        using var reader = new CsvReader(new ExcelParser(fullPath));
-                        var headers = reader.HeaderRecord;
-                        //check if header of incoming file matches the user Data header
-                        if (!(headers[0] == "FirstName" &&
-                            headers[1] == "PhoneNumber" &&
-                            headers[2] == "State" &&
-                            headers[3] == "Gender" &&
-                            headers[4] == "Email" &&
-                            headers[5] == "Others"))
+                        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                         {
+                            HeaderValidated = null,
+                            MissingFieldFound = null,
+                    };
+                        var parser = new ExcelParser(fullPath, "sheet1", config);
+                        using var reader = new CsvReader(parser);
+                        userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
+                        var fileForUpdatesFilelds = JsonConvert.DeserializeObject<List<string>>(existingFile.Fields);
+                         headers = reader.HeaderRecord;
+                        headerFields = JsonConvert.SerializeObject(headers);
+                      await validateHeaders(headers, fileForUpdatesFilelds,fileName,fullPath,account,existingFile.Fields);
 
-                            File.Delete(fullPath);
-                            throw new AppException("File for upload not properly formatted");
-                        }
-
-                    }
+                     
+                     }
 
 
                     if (fileExtension.ToLower() == ".csv")
@@ -635,30 +636,25 @@ namespace BAT.api.Services
                         using (var reader2 = new StreamReader(fullPath))
                         using (var csv = new CsvReader(reader2, CultureInfo.InvariantCulture))
                         {
-                            var csvHeader = csv.HeaderRecord;
                             userDataToSave = csv.GetRecords<UserImportlDataDto>().ToList();
-                            if (!(csvHeader[0] == "FirstName" &&
-                           csvHeader[1] == "PhoneNumber" &&
-                           csvHeader[2] == "State" &&
-                           csvHeader[3] == "Gender" &&
-                           csvHeader[4] == "Email" &&
-                           csvHeader[5] == "Others"))
-                            {
-                                throw new Exception("File for update not properly formatted");
-                            }
+                             headers = csv.HeaderRecord;
+                            headerFields = JsonConvert.SerializeObject(headers);
+                            var fileForUpdatesFilelds = JsonConvert.DeserializeObject<List<string>>(existingFile.Fields);
+                            await validateHeaders(headers, fileForUpdatesFilelds, fileName, fullPath, account, existingFile.Fields);
                         }
 
                     }
 
 
                     //Todo update for file
+
                     List<UserData> userDatas = new List<UserData>();
                     foreach (var item in userDataToSave)
                     {
                         userDatas.Add(new UserData
                         {
                             Created = DateTime.UtcNow,
-                            CreatedBy = AdminId,
+                            CreatedBy = account.Id,
                             Email = item.Email,
                             FileId = updateFile.FileId,
                             FirstName = item.FirstName,
@@ -667,11 +663,41 @@ namespace BAT.api.Services
                             PhoneNumber = item.PhoneNumber,
                             State = item.State,
                             Age = item.Age,
+                            AgeCohorts = item.AgeCohorts,
+                            AirtimeUsage = item.AirtimeUsage,
+                            DateOfBirth = item.DateOfBirth,
+                            FileFields = headerFields,
+                            IncomeClass = item.IncomeClass,
+                            LGA = item.LGA,
+                            MobileNumber = item.MobileNumber,
+                            MobilePhone = item.MobilePhone,
+                            Occupation = item.Occupation,
+                            PollingUnit = item.PollingUnit,
+                            PVC = item.PVC,
+                            StateOfResidence = item.StateOfResidence,
+                            TelcoProvider = item.TelcoProvider,
+                            VotingLGA = item.VotingLGA,
+                            VotingRAC = item.VotingRAC,
+                            WorkStatus = item.WorkStatus,
 
-                        });
+                        }) ;
                     }
                     _context.BulkInsertAsync(userDatas);
                     _context.SaveChanges();
+
+
+                    //update the excel file
+
+                    var sheetPath = Directory.GetCurrentDirectory() +"\\"+ existingFile.DownloadUrl.Replace("//","\\");
+                    using (var writer = new ExcelWriter(existingFile.DownloadUrl,"sheet1"))
+                    {
+                        var userData = _context.UserDatas.Where(x => x.FileId == updateFile.FileId).ToList();
+                        var excelDatat = _mapper.Map<List<UserImportlDataDto>>(userData);
+                        writer.WriteRecords(excelDatat);
+                    }
+
+
+
 
                     return new Response<string>
                     {
@@ -686,6 +712,50 @@ namespace BAT.api.Services
             }
 
             throw new AppException("Only .csv and .xlsx files are allowed");
+        }
+
+
+        async Task validateHeaders(string[] headers, List<string> fileForUpdatesFilelds, string fileName,string fullPath, Account account,string Fields)
+        {
+            if (headers.Length != fileForUpdatesFilelds.Count)
+            {
+                string errorDetails = $"Headers for existing file update do not match -- {Fields}";
+                _context.UploadErrors.Add(new UploadError
+                {
+                    DateUploaded = DateTime.UtcNow,
+                    ErrorDetails = errorDetails,
+                    FileName = fileName,
+                    UploadedBy = account.Id,
+                    UploadedByName = $"{account.FirstName} {account.LastName}"
+                });
+                await _context.SaveChangesAsync();
+                throw new AppException(errorDetails);
+            }
+            for (int i = 0; i < fileForUpdatesFilelds.Count; i++)
+            {
+                var sourceHeader = headers[i].Replace(" ", "").Trim().ToLower();
+                var destheader = fileForUpdatesFilelds[i].Replace(" ", "").Trim().ToLower();
+    
+                if (sourceHeader != destheader)
+                {
+                    try
+                    {
+                        File.Delete(fullPath);
+                    }
+                    catch (Exception) { }
+                    string errorDetails = $"File for upload not properly formatted, it must be in the order {Fields}";
+                    _context.UploadErrors.Add(new UploadError
+                    {
+                        DateUploaded = DateTime.UtcNow,
+                        ErrorDetails = errorDetails,
+                        FileName = fileName,
+                        UploadedBy = account.Id,
+                        UploadedByName = $"{account.FirstName} {account.LastName}"
+                    });
+                    await _context.SaveChangesAsync();
+                    throw new AppException($"File for upload not properly formatted, it must be in the order {Fields}");
+                }
+            }
         }
 
 
@@ -835,7 +905,8 @@ namespace BAT.api.Services
                 Fields = existingFile.Fields,
                 Title = processFileRequest.Title,
                 UploadedFileCount = existingFile.TotalRecordCount,
-                ProcessedItemCount = result.Count
+                ProcessedItemCount = result.Count,
+                HourProcessed = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
             };
 
             _context.ProcessedFileDetails.Add(processedFileDetails);
@@ -982,7 +1053,7 @@ namespace BAT.api.Services
         private async Task saveUploadedError(UploadError uploadError)
         {
             _context.Add(uploadError);
-           await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -52,9 +52,9 @@ namespace BAT.api.Controllers
 
 
         [HttpPost("UpdateFile")]
-        public IActionResult UpdateFile([FromForm] UpdateFile updateFile)
+        public async Task<IActionResult> UpdateFile([FromForm] UpdateFile updateFile)
         {
-            var response = _fileUploadService.UpdateFile(updateFile, Account.Id);
+            var response = await _fileUploadService.UpdateFile(updateFile, Account);
             return Ok(response);
         }
 
