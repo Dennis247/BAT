@@ -8,6 +8,10 @@ namespace BAT.api.Models.Dtos.UserActivationDto
         public string Name { get; set; }
         public string PhoneNumber { get; set; }
         public DateTime DateActivated { get; set; }
+        public string HourActivated { get; set; }
+        public int WeekActivated { get; set; }
+        public string DayOfTheYear { get; set; }
+        public string DayOfTheWeek { get; set; }
     }
 
     public class AddActivatedUser

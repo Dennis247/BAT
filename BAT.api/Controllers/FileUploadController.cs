@@ -1,4 +1,5 @@
-﻿using BAT.api.Models.Dtos.FileUpload;
+﻿using BAT.api.Authorization;
+using BAT.api.Models.Dtos.FileUpload;
 using BAT.api.Models.Dtos.UserData;
 using BAT.api.Services;
 using BAT.api.Utils.Filters;
@@ -22,7 +23,7 @@ namespace BAT.api.Controllers
 
 
 
-
+        [AllowAnonymous]
         [HttpPost("GetUserUploads")]
         public IActionResult GetUserUploads([FromQuery] PaginationFilter filter)
         {
@@ -78,6 +79,22 @@ namespace BAT.api.Controllers
         }
 
 
+        [AllowAnonymous]
+        [HttpGet("DownloadFile")]
+        public IActionResult DownloadFile(int FileId)
+        {
+            var response = _fileUploadService.DownloadFile(FileId);
+            return File(response.DOwnloadData, System.Net.Mime.MediaTypeNames.Application.Octet, response.FileName);
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet("DownloadFileUsingFields")]
+        public IActionResult DownloadFileUsingFields(int FileId)
+        {
+            var response = _fileUploadService.DownloadFileUsingFields(FileId);
+            return File(response.DOwnloadData, System.Net.Mime.MediaTypeNames.Application.Octet, response.FileName);
+        }
 
     }
 }

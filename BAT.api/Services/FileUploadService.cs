@@ -50,6 +50,11 @@ namespace BAT.api.Services
         public Response<ProcessedFileDetailsDto> GetProcessedFileById(int Id);
 
         PagedResponse<List<UploadError>> GetUploadedErrors(PaginationFilter filter, string route, Account Account);
+
+        public DownloadResponse DownloadFileUsingFields(int FileId);
+
+
+        public DownloadResponse DownloadFile(int FileId);
     }
 
     public class FileUploadService : IFileUploadService
@@ -294,8 +299,6 @@ namespace BAT.api.Services
                     formFile.CopyTo(stream);
                     stream.Dispose();
                 }
-
-
 
 
                 try
@@ -682,22 +685,15 @@ namespace BAT.api.Services
 
                         }) ;
                     }
-                    _context.BulkInsertAsync(userDatas);
+                    await _context.BulkInsertAsync(userDatas);
                     _context.SaveChanges();
 
-
-                    //update the excel file
-
-                    var sheetPath = Directory.GetCurrentDirectory() +"\\"+ existingFile.DownloadUrl.Replace("//","\\");
-                    using (var writer = new ExcelWriter(existingFile.DownloadUrl,"sheet1"))
+                    //Delete the file for update
+                    try
                     {
-                        var userData = _context.UserDatas.Where(x => x.FileId == updateFile.FileId).ToList();
-                        var excelDatat = _mapper.Map<List<UserImportlDataDto>>(userData);
-                        writer.WriteRecords(excelDatat);
+                        File.Delete(fullPath); 
                     }
-
-
-
+                    catch (Exception ex){}
 
                     return new Response<string>
                     {
@@ -1047,6 +1043,71 @@ namespace BAT.api.Services
             var pagedReponse = PaginationHelper.CreatePagedReponse<UploadError>(pagedData, validFilter, totalRecords, _uriService, route);
             return pagedReponse;
         }
+
+
+        public DownloadResponse DownloadFileUsingFields(int FileId)
+        {
+            DownloadResponse downloadResponse = new DownloadResponse();
+            string fileName = "";
+            {
+                using var memoryStream = new MemoryStream();
+
+                {
+                    using var excelWriter = new ExcelWriter(memoryStream, CultureInfo.InvariantCulture);
+                    var dataForDownload = _context.UserDatas.Where(x => x.FileId == FileId).ToList();
+                    var fields = JsonConvert.DeserializeObject<List<string>>(dataForDownload[0].FileFields);
+                    var fileUpload = _context.FileUploads.FirstOrDefault(x => x.Id == FileId);
+                    fileName = fileUpload.FileName;
+
+
+                    foreach (var field in fields)
+                    {
+                        excelWriter.WriteField(field);
+                    }
+                    excelWriter.NextRecord();
+
+                    foreach (var item in dataForDownload)
+                    {
+
+                        foreach (var item2 in fields)
+                        {
+                            var fieldValue = GenericHelper.GetPropertyValue<UserData>(item2, item);
+                            excelWriter.WriteField(@$"'{fieldValue.ToString()}");
+                        }
+                        excelWriter.NextRecord();
+                    }
+                    memoryStream.Position = 0;
+                }
+
+                downloadResponse.DOwnloadData = memoryStream.ToArray();
+                downloadResponse.FileName = fileName;
+            }
+            return downloadResponse;
+        }
+
+        public DownloadResponse DownloadFile(int FileId)
+        {
+            DownloadResponse downloadResponse = new DownloadResponse();
+            string fileName = "";
+            {
+                using var memoryStream = new MemoryStream();
+
+                {
+                    using var excelWriter = new ExcelWriter(memoryStream, CultureInfo.InvariantCulture);
+                    var dataForDownload = _context.UserDatas.Where(x => x.FileId == FileId).ToList();
+                    var fileUpload = _context.FileUploads.FirstOrDefault(x => x.Id == FileId);
+                    fileName = fileUpload.FileName;
+                    var dataForExport = _mapper.Map<List<UserImportlDataDto>>(dataForDownload);
+                    excelWriter.WriteRecords(dataForExport);
+                    memoryStream.Position = 0;
+                }
+
+                downloadResponse.DOwnloadData = memoryStream.ToArray();
+                downloadResponse.FileName =fileName;
+            }
+            return downloadResponse;
+        }
+
 
 
         //

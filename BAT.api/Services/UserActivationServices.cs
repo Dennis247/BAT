@@ -58,8 +58,10 @@ namespace BAT.api.Services
                     DateActivated = DateTime.UtcNow,
                     Name = addActivatedUser.Name,
                     HourActivated = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
-                    WeekActivated = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(DateTime.UtcNow, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday)
-            });
+                    WeekActivated = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(DateTime.UtcNow, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday),
+                    DayOfTheWeek = DateTime.UtcNow.DayOfWeek.ToString(),
+                    DayOfTheYear = DateTime.Now.DayOfYear.ToString(),
+                });
 
                 _context.SaveChanges();
             }
@@ -111,7 +113,12 @@ namespace BAT.api.Services
         public Response<UserActivationDashBoard> GetUserActivationDashBoard()
         {
             var weekOfTheYear = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(DateTime.Now, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-
+            UserActivationDashBoard userActivationDashBoard = new UserActivationDashBoard
+            {
+                ThisWeekGraph = new List<UserActivationGraph>(),
+                ThisMonthGarph  = new List<UserActivationGraph>(),
+                TodayGraph = new List<UserActivationGraph>(),
+            };
 
             int TodayCount = _context.UserActivations.Count(x => x.DateActivated.Date == DateTime.UtcNow.Date);
             int ThisWeekCount = _context.UserActivations.Count(x => x.WeekActivated == weekOfTheYear);
@@ -121,22 +128,95 @@ namespace BAT.api.Services
                           group u by u.HourActivated into g
                           select new { time = g.Key, Count = g.ToList().Count() };
 
-            List<UserActivationGraph> list = new List<UserActivationGraph>();
+            List<UserActivationGraph> list = new List<UserActivationGraph>
+            {
+                   new  UserActivationGraph { Time = "12 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "1 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "2 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "3 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "4 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "5 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "6 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "7 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "8 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "9 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "10 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "11 AM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "12 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "1 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "2 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "1 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "2 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "3 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "4 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "5 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "6 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "7 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "8 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "9 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "10 PM", UserCount = 0 },
+                    new  UserActivationGraph { Time = "11 PM", UserCount = 0 },
+            };
+
+
             foreach (var item in results)
             {
                 list.Add(new UserActivationGraph { Time = item.time.ToString(), UserCount = item.Count });
 
+                var itemToSet = list.FirstOrDefault(x => x.Time == item.time);
+                if (itemToSet != null)
+                {
+                    itemToSet.Time = item.time;
+                    itemToSet.UserCount = item.Count;
+                }
+
+
             }
+
+
+            var TodayGarphList = from u in _context.UserActivations.Where(x => x.DateActivated.Date == DateTime.Today)
+                               group u by u.HourActivated into g
+                               select new { time = g.Key, Count = g.ToList().Count() };
+
+            foreach (var item in TodayGarphList)
+            {
+                userActivationDashBoard.TodayGraph.Add(new UserActivationGraph { Time = item.time, UserCount = item.Count });
+            }
+
+
+
+            var weekGarphList = from u in _context.UserActivations.Where(x => x.WeekActivated == weekOfTheYear)
+                                 group u by u.DayOfTheWeek into g
+                                 select new { Day = g.Key, Count = g.ToList().Count() };
+
+            foreach (var item in weekGarphList)
+            {
+                userActivationDashBoard.ThisWeekGraph.Add(new UserActivationGraph { Time = item.Day, UserCount = item.Count });
+            }
+
+
+
+            var monthGraphList = from u in _context.UserActivations.Where(x => x.DateActivated.Date.Month 
+                                 == DateTime.UtcNow.Month && x.DateActivated.Date.Year == DateTime.UtcNow.Year)
+                                group u by u.DayOfTheYear into g
+                                select new { Day = g.Key, Count = g.ToList().Count() };
+
+            foreach (var item in monthGraphList)
+            {
+                userActivationDashBoard.ThisMonthGarph.Add(new UserActivationGraph { Time = item.Day, UserCount = item.Count });
+            }
+
+
+
+            userActivationDashBoard.ThisMonth = ThisMonthCount;
+            userActivationDashBoard.ThisWeek = ThisWeekCount;
+            userActivationDashBoard.TodayCount = TodayCount;
+            userActivationDashBoard.userActivationGraph = list;
+
 
             return new Response<UserActivationDashBoard>
             {
-                Data = new UserActivationDashBoard
-                {
-                    ThisMonth = ThisMonthCount,
-                    ThisWeek = ThisWeekCount,
-                    TodayCount = TodayCount,
-                    userActivationGraph = list
-               },
+                Data =userActivationDashBoard,
                 Succeeded = true,
                 Message = ""
 

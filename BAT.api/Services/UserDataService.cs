@@ -235,6 +235,8 @@ namespace BAT.api.Services
             var uploadedData = from u in _context.FileUploads.Where(x=>x.DateUploaded.Date == DateTime.Today)
                                group u by u.HourUploaded into g
                                select new { time = g.Key, Count = g.ToList().Count() };
+
+
             foreach (var item in uploadedData)
             {
                 var itemToSet = userReportDashBoard.UploadedDataGraph.FirstOrDefault(x => x.Hour == item.time);

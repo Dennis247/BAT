@@ -73,6 +73,25 @@ namespace BAT.api.Utils.Helpers
         }
 
 
+       public  static object GetPropertyValue<T>(string propertyName, object instanceObject)
+        {
+            try
+            {
+                var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                var propertyInfo = propertyInfos.FirstOrDefault(pi => pi.Name.Equals(propertyName,
+                    StringComparison.InvariantCultureIgnoreCase));
+
+               var result = propertyInfo.GetValue(instanceObject, null);
+                return result;
+            }
+            catch (Exception ex)
+            {
+
+                return null ;
+            }
+     
+        }
+
         public static List<T> SortData<T>(List<T> data, string sortField, string sortOrder)
         {
             try
@@ -95,7 +114,9 @@ namespace BAT.api.Utils.Helpers
                 SortField = StringHelpers.ToTitleCase(SortField);
 
                 var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                var propertyInfo = propertyInfos.FirstOrDefault(pi => pi.Name.Equals(SortField, StringComparison.InvariantCultureIgnoreCase));
+                PropertyInfo propertyInfo = propertyInfos.FirstOrDefault(pi => pi.Name.Equals(SortField, StringComparison.InvariantCultureIgnoreCase));
+
+               
 
                 if (SortOrder == "asc")
                 {

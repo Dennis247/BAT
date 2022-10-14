@@ -10,6 +10,9 @@ namespace BAT.api.Models.Entities
         public DateTime DateActivated { get; set; }
         public string HourActivated { get; set; }
        public int WeekActivated { get; set; }
+        public string DayOfTheYear { get; set; }
+        public string DayOfTheWeek { get; set; }
+
        
     }
 
@@ -26,8 +29,11 @@ namespace BAT.api.Models.Entities
     {
         public List<UserActivationGraph> userActivationGraph { get; set; }
         public int TodayCount { get; set; }
+        public List<UserActivationGraph> TodayGraph { get; set; }
         public int ThisWeek { get; set; }
+        public List<UserActivationGraph> ThisWeekGraph { get; set; }
         public int ThisMonth {get;set;}
+        public List<UserActivationGraph> ThisMonthGarph { get; set; }
 
     }
 
@@ -36,4 +42,7 @@ namespace BAT.api.Models.Entities
         public string Time { get; set; }
         public int UserCount { get; set; }
     }
+
+
+
 }

@@ -13,4 +13,11 @@ namespace BAT.api.Models.Entities
         public string FileName { get; set; }    
 
     }
+
+
+    public class DownloadResponse
+    {
+        public byte[] DOwnloadData { get; set; }
+        public string FileName { get; set; }
+    }
 }
