@@ -7,6 +7,7 @@
         public string? LastName { get; set; }
         public string? PhoneNumber { get; set; }
         public string? MobileNumber { get; set; }
+        public string? MobilephoneType { get; set; }
         public string? State { get; set; }
         public string? Gender { get; set; }
         public string? Email { get; set; }
@@ -16,7 +17,9 @@
         public string? PollingUnit { get; set; }
         public string? VotingRAC { get; set; }
         public string? VotingLGA { get; set; }
+        public string? StateofOrigin { get; set; }
         public string? StateOfResidence { get; set; }
+        public string? Address { get; set; }
         public string? LGA { get; set; }
         public string? TelcoProvider { get; set; }
         public string? MobilePhone { get; set; }
@@ -27,6 +30,7 @@
         public string? AgeCohorts { get; set; }
         public string? FileFields { get; set; }
         public int? FileId { get; set; }
+        public string? RAC { get; set; }
     }
 
 
@@ -36,6 +40,7 @@
         public string? LastName { get; set; }
         public string? PhoneNumber { get; set; }
         public string? MobileNumber { get; set; }
+        public string? MobilephoneType { get; set; }
         public string? State { get; set; }
         public string? Gender { get; set; }
         public string? Email { get; set; }
@@ -45,7 +50,9 @@
         public string? PollingUnit { get; set; }
         public string? VotingRAC { get; set; }
         public string? VotingLGA { get; set; }
+        public string? StateofOrigin { get; set; }
         public string? StateOfResidence { get; set; }
+        public string? Address { get; set; }
         public string? LGA { get; set; }
         public string? TelcoProvider { get; set; }
         public string? MobilePhone { get; set; }
@@ -54,6 +61,7 @@
         public string? PVC { get; set; }
         public string? IncomeClass { get; set; }
         public string? AgeCohorts { get; set; }
+        public string? RAC { get; set; }
 
     }
 

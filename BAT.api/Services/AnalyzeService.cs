@@ -91,7 +91,7 @@ namespace BAT.api.Services
             foreach (var item in analyzeRequest.AnalyzeDtos)
             {
 
-                  var prop = GenericHelper.GetProperty<UserData>(item.Field);
+                var prop = GenericHelper.GetProperty<UserData>(item.Field);
                 if(prop == null)
                 {
                     throw new AppException($"{item.Field} is not a valid field name");

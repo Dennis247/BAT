@@ -26,6 +26,10 @@
             "pvc",
             "incomeclass",
             "agecohorts",
+            "stateoforigin",
+            "address",
+            "mobilephonetype",
+            "rac"
         };
 
 

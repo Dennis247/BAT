@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Net.Http.Headers;
 
 namespace BAT.api.Services
@@ -27,7 +28,7 @@ namespace BAT.api.Services
     {
         PagedResponse<List<UserFileUploadDto>> GetUserFileUploads(PaginationFilter filter, string route, Account account);
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route);
-        Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId);
+        Task<Response<int>> MergeUserData(MergeDataDto mergeUserDataDto, int AdminId);
 
         Task<Response<int>> PreviewFile(IFormFile formFile, Account account);
 
@@ -116,84 +117,146 @@ namespace BAT.api.Services
 
         }
 
-        public async Task<Response<int>> MergeUserData(MergeUserDataDto mergeUserDataDto, int AdminId)
+        public async Task<Response<int>> MergeUserData(MergeDataDto mergeUserDataDto, int AdminId)
         {
 
-            //validate that the file ids for merging are valid
+            var allFIleUploads = _context.FileUploads.ToList();
+            List<List<UserData>> dataForMerging = new List<List<UserData>>();
 
-            foreach (var item in mergeUserDataDto.FieldsForMerging)
+            //check that the file for merging are both valid
+            foreach (var item in mergeUserDataDto.FileIds)
             {
-                var file = _context.FileUploads.Find(item);
-                if (file == null)
+                var userUploadExist = allFIleUploads.FirstOrDefault(x => x.Id == item);
+                if (userUploadExist == null)
                     throw new AppException($"File with Id {item} does not exist");
+                var dataForMerge = _context.UserDatas.Where(x => x.FileId == item).ToList();
+                dataForMerging.Add(dataForMerge);
+
+
             }
 
-            //check to confirm that the selected merge fields is present in the columns for merging
+            var data1 = dataForMerging[0];
+            var data2 = dataForMerging[1];
 
-            foreach (var item in mergeUserDataDto.FieldsForMerging)
-            {
-                foreach (var item2 in mergeUserDataDto.MergeData.Select(x => x.TabeleFields))
-                {
-                    if (!item.Contains(item))
-                    {
-                        throw new AppException($"Selected Fields for merging must be present in Files selected for merging");
-                    }
-                }
-            }
+            var result = from dt1 in data1
+                        join dt2 in data2
+                             on dt1.MobileNumber equals dt2.MobileNumber
+                        select new
+                        {
+                            dt1.FirstName,
+                            dt1.LastName,
+                            dt2.Gender,
+                            dt1.MobileNumber,
+                            dt1.TelcoProvider,
+                            dt2.DateOfBirth,
+                            dt1.Age,
+                            dt2.StateofOrigin,
+                            dt1.Address,
+                            dt1.AirtimeUsage,
+                            dt1.IncomeClass,
+                            dt1.AgeCohorts,
+                            dt2.Occupation,
+                            dt2.WorkStatus,
+                            dt2.RAC,
+                            dt2.LGA,
+                            dt2.State
+                        };
 
-            //generate sql query for merge data
-            var sqlQuery = generateMergeQuery(mergeUserDataDto);
+            int count = result.Count();
 
+            var fileFields = JsonConvert.SerializeObject(new List<string> {
+                        "PhoneNumber", "MobileNumber", "FirstName", "LastName", "Address", "Age", "AgeCohorts", "AirtimeUsage", "DateOfBirth", "Gender", "LGA", "Occupation", "State",
+                        "StateofOrigin", "WorkStatus", "RAC", "TelcoProvider"
+                    });
 
-            //write the merge result into a file
-            var result = await _dapperDbConnection.QueryAsync<dynamic>("sqlQuery");
-
-            string JsonList = JsonConvert.SerializeObject(result.ToList());
-
-            DataTable dt = JsonConvert.DeserializeObject<DataTable>(JsonList);
-
-            var folderName = Path.Combine("AppUploads", "MergedData");
-            var pathToSave = Path.Combine(Directory.GetCurrentDirectory(), folderName);
-            var fileName = mergeUserDataDto.MergedFileName + ".xlsx";
-            var fullPath = Path.Combine(pathToSave, fileName);
-            var filePath = Path.Combine(folderName, fileName);
-            filePath = filePath.Replace("\\", "//");
-
-            //write datatTable to excel
-            WriteToExcel(dt, fullPath);
-
-            //store merge file in upload table
 
             FileUpload fileUpload = new FileUpload
             {
-                DateMerged = DateTime.UtcNow,
-                DownloadUrl = filePath,
-                FileSize = StringHelpers.FileSize(fullPath),
-                UploadedBy = AdminId,
-                MergedDetails = JsonConvert.SerializeObject(mergeUserDataDto.MergeData),
-                DateUploaded = DateTime.UtcNow,
                 IsInPreviewMode = false,
-                FileUploadType = FileUploadType.MergedData,
                 IsMerged = true,
                 MergedBy = AdminId,
+                DateMerged = DateTime.UtcNow,
+                HourMerged = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                FileSize = "",
                 FileName = mergeUserDataDto.MergedFileName,
-                FileType = "xlsx",
+                Fields = fileFields,
+                UploadedBy = AdminId,
+                TotalRecordCount = count,
                 DateSaved = DateTime.UtcNow,
+                HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                DateUploaded = DateTime.UtcNow,
+                FileType = ".xlsx",
+                DownloadUrl=""
 
             };
+            try
+            {
+                _context.FileUploads.Add(fileUpload);
+                _context.SaveChanges();
 
-            _context.FileUploads.Add(fileUpload);
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+       
+            List<UserData> userListForSeeding = new List<UserData>();
+            foreach (var item in result)
+            {
+                UserData userData = new UserData
+                {
+                    PhoneNumber = item.MobileNumber,
+                    MobileNumber = item.MobileNumber,
+                    FirstName = item.FirstName,
+                    LastName = item.LastName,
+                    Address = item.Address,
+                    Age = item.Age,
+                    AgeCohorts = item.AgeCohorts,
+                    AirtimeUsage = item.AirtimeUsage,
+                    Created = DateTime.Now,
+                    CreatedBy = AdminId,
+                    DateOfBirth = item.DateOfBirth,
+                    Gender = item.Gender,
+                    LGA = item.LGA,
+                    Occupation = item.Occupation,
+                    State = item.State,
+                    StateofOrigin = item.StateofOrigin,
+                    WorkStatus = item.WorkStatus,
+                    RAC = item.RAC,
+                    TelcoProvider = item.TelcoProvider,
+                    FileId = fileUpload.Id,
+                    FileFields = fileFields
+
+
+                };
+                userListForSeeding.Add(userData);
+            }
+
+            _context.UserDatas.AddRange(userListForSeeding);
             _context.SaveChanges();
 
 
             return new Response<int>
             {
-                Succeeded = true,
                 Data = fileUpload.Id,
-                Message = "Merge Sucessful"
+                Message = "Merge Sucessful",
+                Succeeded = true
             };
 
+
+
         }
+
+        private static Expression<Func<T, string>> GetExpression<T>(string property)
+        {
+            var userdata = Expression.Parameter(typeof(T), "x");
+            var menuProperty = Expression.PropertyOrField(userdata, property);
+            var lambda = Expression.Lambda<Func<T, string>>(menuProperty, userdata);
+
+            return lambda;
+        }
+
 
 
         public PagedResponse<List<UserDataDto>> ViewUserUploadData(int FileId, PaginationFilter filter, string route)
@@ -326,7 +389,10 @@ namespace BAT.api.Services
                         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                         {
                             HeaderValidated = null,
-                            MissingFieldFound = null
+                            MissingFieldFound = null,
+                            PrepareHeaderForMatch = args => args.Header.ToLower().Replace(" ",""),
+                           
+
                         };
                         //Todo read file from excel and bulk insert into db
                         using (var reader2 = new StreamReader(fullPath))
@@ -368,15 +434,20 @@ namespace BAT.api.Services
                         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                         {
                             HeaderValidated = null,
-                            MissingFieldFound = null
+                            MissingFieldFound = null,
+                            PrepareHeaderForMatch = args => args.Header.ToLower().Replace(" ", ""),
+
                         };
 
                         //Todo read file from excel and bulk insert into db
                         var parser = new ExcelParser(fullPath, "sheet1", config);
 
+
+
                         using var reader = new CsvReader(parser);
                         userDataToSave = reader.GetRecords<UserImportlDataDto>().ToList();
                         var headers = reader.HeaderRecord;
+                       
 
                         foreach (var item in headers)
                         {
@@ -402,7 +473,11 @@ namespace BAT.api.Services
                                     $" {JsonConvert.SerializeObject(Constants.Columns)}");
                             }
                         }
+                    
                     }
+
+
+
 
                     List<UserData> userDatas = new List<UserData>();
                     foreach (var item in userDataToSave)
@@ -421,6 +496,25 @@ namespace BAT.api.Services
                             State = item.State,
                             FileFields = JsonConvert.SerializeObject(fileHeaders),
                             Age = item.Age,
+                            Address = item.Address,
+                            AgeCohorts = item.AgeCohorts,
+                            AirtimeUsage = item.AirtimeUsage,
+                            DateOfBirth = item.DateOfBirth,
+                            IncomeClass=item.IncomeClass,
+                            LGA = item.LGA,
+                            MobileNumber = item.MobileNumber,
+                            MobilePhone = item.MobilePhone,
+                            MobilephoneType = item.MobilephoneType,
+                            Occupation = item.Occupation,
+                            PollingUnit = item.PollingUnit,
+                            PVC = item.PVC,
+                            RAC = item.RAC,
+                            StateofOrigin = item.StateofOrigin,
+                            StateOfResidence = item.StateOfResidence,
+                            TelcoProvider= item.TelcoProvider,
+                            VotingLGA = item.VotingLGA,
+                            VotingRAC = item.VotingRAC,
+                            WorkStatus = item.WorkStatus,
                         });
                     }
                     var fileSize = StringHelpers.FileSize(fullPath);
@@ -432,6 +526,14 @@ namespace BAT.api.Services
                     _context.SaveChanges();
                     await _context.BulkInsertAsync(userDatas);
 
+                    return new Response<int>
+                    {
+                        Data = fileId,
+                        Message = "File Upload sucessfull",
+                        Succeeded = true,
+
+                    };
+
                 }
                 catch (Exception ex)
                 {
@@ -439,31 +541,23 @@ namespace BAT.api.Services
                     try
                     {
                         File.Delete(fullPath);
+                        _context.FileUploads.Remove(fileUpload);
+                        _context.SaveChanges();
                     }
                     catch (Exception)
                     {
-
-
                     }
-                    if (fileUpload != null)
+
+
+                    return new Response<int>
                     {
-                        _context.FileUploads.Remove(fileUpload);
-                    }
+                        Data = 0,
+                        Message = "File Upload Failed",
+                        Succeeded = false,
 
-
-                }
-                finally
-                {
-
+                    };
                 }
 
-                return new Response<int>
-                {
-                    Data = fileId,
-                    Message = "File Upload sucessfull",
-                    Succeeded = true,
-
-                };
 
 
             }
@@ -757,46 +851,46 @@ namespace BAT.api.Services
 
         //generate merge quety
 
-        string generateMergeQuery(MergeUserDataDto mergeUserDataDto)
-        {
-            string selectPart = "select ";
+        //string generateMergeQuery(MergeUserDataDto mergeUserDataDto)
+        //{
+        //    string selectPart = "select ";
 
-            foreach (var item2 in mergeUserDataDto.MergeData)
-            {
-                var result = item2.TableName + "." + string.Join($", {item2.TableName}.", item2.TabeleFields);
-                selectPart += result + ",";
+        //    foreach (var item2 in mergeUserDataDto.MergeData)
+        //    {
+        //        var result = item2.TableName + "." + string.Join($", {item2.TableName}.", item2.TabeleFields);
+        //        selectPart += result + ",";
 
-            }
-
-
-            selectPart = $"{selectPart.TrimEnd(',')} FROM {mergeUserDataDto.MergeData[0].TableName}";
-
-            string InnerJoinPath = "";
+        //    }
 
 
-            for (int i = mergeUserDataDto.MergeData.Count - 1; i >= 0; i--)
-            {
+        //    selectPart = $"{selectPart.TrimEnd(',')} FROM {mergeUserDataDto.MergeData[0].TableName}";
 
-                if (i != 0)
-                {
-                    for (int j = 0; j < mergeUserDataDto.FieldsForMerging.Count; j++)
-                    {
-                        InnerJoinPath += $"INNER JOIN {mergeUserDataDto.MergeData[i].TableName} ON" +
-                            $" {mergeUserDataDto.MergeData[i].TableName}.{mergeUserDataDto.FieldsForMerging[j]} = {mergeUserDataDto.MergeData[i - 1].TableName}.{mergeUserDataDto.FieldsForMerging[j]},";
-                    }
-                }
-
-            }
-            InnerJoinPath = InnerJoinPath.Trim(',');
+        //    string InnerJoinPath = "";
 
 
-            string orderBy = $"ORDER BY {mergeUserDataDto.MergeData[0].TableName}.{mergeUserDataDto.MergeData[0].TabeleFields[0]} ASC;";
+        //    for (int i = mergeUserDataDto.MergeData.Count - 1; i >= 0; i--)
+        //    {
 
-            string query = $"{selectPart} {InnerJoinPath} {orderBy}";
+        //        if (i != 0)
+        //        {
+        //            for (int j = 0; j < mergeUserDataDto.FieldsForMerging.Count; j++)
+        //            {
+        //                InnerJoinPath += $"INNER JOIN {mergeUserDataDto.MergeData[i].TableName} ON" +
+        //                    $" {mergeUserDataDto.MergeData[i].TableName}.{mergeUserDataDto.FieldsForMerging[j]} = {mergeUserDataDto.MergeData[i - 1].TableName}.{mergeUserDataDto.FieldsForMerging[j]},";
+        //            }
+        //        }
 
-            return query;
+        //    }
+        //    InnerJoinPath = InnerJoinPath.Trim(',');
 
-        }
+
+        //    string orderBy = $"ORDER BY {mergeUserDataDto.MergeData[0].TableName}.{mergeUserDataDto.MergeData[0].TabeleFields[0]} ASC;";
+
+        //    string query = $"{selectPart} {InnerJoinPath} {orderBy}";
+
+        //    return query;
+
+        //}
 
 
         public void WriteToExcel(DataTable dt, string path)

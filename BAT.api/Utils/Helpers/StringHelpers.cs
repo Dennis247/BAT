@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace BAT.api.Utils.Helpers
@@ -64,6 +65,15 @@ namespace BAT.api.Utils.Helpers
 
    public class GenericHelper
     {
+        private static Expression<Func<T, string>> GetExpression<T>(string property)
+        {
+            var userdata = Expression.Parameter(typeof(T), "x");
+            var menuProperty = Expression.PropertyOrField(userdata, property);
+            var lambda = Expression.Lambda<Func<T, string>>(menuProperty, userdata);
+
+            return lambda;
+        }
+
         public static PropertyInfo? GetProperty<T>(string field)
         {
             var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
