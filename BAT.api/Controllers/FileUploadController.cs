@@ -61,12 +61,7 @@ namespace BAT.api.Controllers
 
 
 
-        [HttpPost("MergeFiles")]
-        public IActionResult MergeFiles(MergeDataDto mergeDataDto)
-        {
-            var response = _fileUploadService.MergeUserData(mergeDataDto, Account.Id);
-            return Ok(response);
-        }
+  
 
 
 

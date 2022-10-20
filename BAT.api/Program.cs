@@ -33,6 +33,8 @@ builder.Services.AddTransient<IUserDataService, UserDataService>();
 builder.Services.AddTransient<IFileUploadService, FileUploadService>();
 builder.Services.AddTransient<IDapperDbConnection, DapperDbConnection>();
 builder.Services.AddTransient<IAnalyzeService, AnalyzeService>();
+builder.Services.AddTransient<IMergeService, MergeService>();
+
 
 
 

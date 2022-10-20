@@ -39,7 +39,7 @@ public interface IAccountService
     Response<string> VerifyEmail(string token);
     Response<string> ProvisionAdmin(ProvisonAdminRequest model, int AdminId);
     Response<string> RevokeInvite(RevokeAdminRequest model);
-    Response<List<ProvisonAdminRequest>> PendingActivationRequest();
+    Response<List<ProvisionedAdmin>> PendingActivationRequest();
     Response<string> DeleteAdmin(DeleteAdminRequest deleteAdminRequest);
 
 
@@ -656,6 +656,7 @@ public class AccountService : IAccountService
             RequesterId = AdminId,
             TeamId = model.TeamId,
             IsPrivateAdmin = model.IsPrivateAdmin,
+            HasCompletedRegistration = false,
             SecretAnswer = _encryptionHelper.AESEncrypt(model.SecretAnswer)
     };
 
@@ -747,13 +748,12 @@ public class AccountService : IAccountService
 
 
 
-    public  Response<List<ProvisonAdminRequest>> PendingActivationRequest()
+    public  Response<List<ProvisionedAdmin>> PendingActivationRequest()
     {
         var pendingActivation = _context.ProvisionedAdmins.Where(x => x.HasCompletedRegistration == false).ToList();
-        var adminToReturn = _mapper.Map<List<ProvisonAdminRequest>>(pendingActivation);
-        return new Response<List<ProvisonAdminRequest>>
+        return new Response<List<ProvisionedAdmin>>
         {
-            Data = adminToReturn,
+            Data = pendingActivation,
             Message = "Sucessful",
             Succeeded = true
         };

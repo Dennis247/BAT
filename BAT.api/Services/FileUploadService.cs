@@ -178,7 +178,7 @@ namespace BAT.api.Services
                 DateMerged = DateTime.UtcNow,
                 HourMerged = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
                 FileSize = "",
-                FileName = mergeUserDataDto.MergedFileName,
+                FileName = mergeUserDataDto.MergedFileName+ ".xlsx",
                 Fields = fileFields,
                 UploadedBy = AdminId,
                 TotalRecordCount = count,
@@ -1165,7 +1165,7 @@ namespace BAT.api.Services
 
                         foreach (var item2 in fields)
                         {
-                            var fieldValue = GenericHelper.GetPropertyValue<UserData>(item2, item);
+                            var fieldValue = GenericHelper.GetPropertyValue<UserData>(item2, item) == null ?  "":GenericHelper.GetPropertyValue<UserData>(item2, item);
                             excelWriter.WriteField(@$"'{fieldValue.ToString()}");
                         }
                         excelWriter.NextRecord();

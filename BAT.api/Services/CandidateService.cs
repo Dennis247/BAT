@@ -174,7 +174,7 @@ namespace BAT.api.Services
             List<Candidate> pagedData = new List<Candidate>();
 
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            int totalRecords = _context.Candidates.Count();
+            int totalRecords = 0;
 
 
             //filter from db directly
@@ -186,13 +186,21 @@ namespace BAT.api.Services
                   || x.LastName.ToLower().Contains(filter.filterBy)
                  || x.WhatAppNumber!.ToString().Contains(filter.filterBy) || x.State.ToLower().Contains(filter.filterBy) 
                  || x.Position.ToLower().Contains(filter.filterBy)
-                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy)).ToList();
+                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy)).Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+
+                totalRecords = _context.Candidates.Where(x => x.FirstName.ToLower().Contains(filter.filterBy) || x.FirstName.ToLower().Contains(filter.filterBy)
+                  || x.LastName.ToLower().Contains(filter.filterBy)
+                 || x.WhatAppNumber!.ToString().Contains(filter.filterBy) || x.State.ToLower().Contains(filter.filterBy)
+                 || x.Position.ToLower().Contains(filter.filterBy)
+                 || x.AreaRepresenting.ToLower().Contains(filter.filterBy)).Count();
             }
             else
             {
-               pagedData = _context.Candidates.ToList();
+                pagedData = _context.Candidates.Skip((validFilter.PageNumber - 1) * validFilter.PageSize).Take(validFilter.PageSize).ToList();
+                totalRecords = _context.Candidates.Count();
+
             }
-            totalRecords = pagedData.Count;
+         
 
             var candidateToReturn = _mapper.Map<List<CandidateDto>>(pagedData);
             candidateToReturn = GenericHelper.SortData(candidateToReturn, filter.sortBy, filter.sortOrder);
