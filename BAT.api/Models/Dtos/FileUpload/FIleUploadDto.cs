@@ -24,10 +24,10 @@ namespace BAT.api.Models.Dtos.FileUpload
         public DateTime DateUploaded { get; set; }
         public string FileType { get; set; }
         public int UploadedBy { get; set; }
-        public string HourUploaded { get; set; }
-        public double FileSize { get; set; }
+        public string? HourUploaded { get; set; }
+        public string FileSize { get; set; }
 
-        public string Fields { get; set; }
+        public string? Fields { get; set; }
     }
 
     public class ViewFileId
@@ -48,6 +48,15 @@ namespace BAT.api.Models.Dtos.FileUpload
 
     }
 
+
+    public class UpdateFile2
+    {
+        public int File1Id { get; set; }
+        public int File2Id { get; set; }
+
+        public string FileName { get; set;}
+
+    }
 
 
 }

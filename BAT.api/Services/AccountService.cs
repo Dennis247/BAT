@@ -345,17 +345,16 @@ public class AccountService : IAccountService
     {
 
         //check if it has reached maximum admin count
-        //if (_context.Accounts.Where(x=>!x.IsAdminPrivate).Count() == 5)
-        //{
-        //    return new Response<int>
-        //    {
-        //        Data = 0,
-        //        Message = "Maximum number of Public Admin has been Registered",
-        //        Succeeded = false
-        //    };
-        //}
+        if (_context.Accounts.Count(x => !x.IsAdminPrivate) == 5)
+        {
+            return new Response<int>
+            {
+                Data = 0,
+                Message = "Maximum number of Public Admin has been Registered",
+                Succeeded = false
+            };
+        }
 
-        //validate the secret answer
 
         //check if password is string
         var isPasswordStrong = SecureTextHasher.IsPasswordStrong(model.Password);
@@ -365,17 +364,16 @@ public class AccountService : IAccountService
         }
 
         //check if this Admin has been provisoned before they can register
-        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email && !x.IsPrivateAdmin) ;
-        if(hasAdminBeenProvisoned == null)
+        var hasAdminBeenProvisoned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email && x.IsPrivateAdmin);
+        if (hasAdminBeenProvisoned == null)
         {
-            throw new KeyNotFoundException("Your profile has not been provisoned as a Public Admin.");
+            throw new KeyNotFoundException("Your profile has not been provisoned as a Private Admin.");
         }
-
-
 
         // check if user already exist using first name , last name and password
 
         var secretHash = _encryptionHelper.AESEncrypt(model.SecretAnswer);
+
 
         //check if this admin secret answer is valid
         var validSecretAnswer = _context.ProvisionedAdmins.FirstOrDefault(x => x.SecretAnswer == secretHash && x.Email == model.Email);
@@ -383,7 +381,6 @@ public class AccountService : IAccountService
         {
             throw new KeyNotFoundException("Secret answer is not valid");
         }
-
 
         if (_context.Accounts.Any(x => (x.SecretAnswer == secretHash)))
         {
@@ -422,14 +419,14 @@ public class AccountService : IAccountService
             Created = DateTime.UtcNow,
             AdminId = account.Id,
             TeamId = hasAdminBeenProvisoned.TeamId,
-           
+
         };
 
         _context.AdminTeams.Add(adminTeam);
         _context.SaveChanges();
 
         // send email
-        //sendVerificationEmail(account, origin);
+        //    sendVerificationEmail(account, origin);
 
         return new Response<int>
         {
@@ -611,7 +608,17 @@ public class AccountService : IAccountService
         {
             throw new AppException("Secret Answer has already been used for a previous Admin");
         }
-      
+
+        //check existing users have used secret answers 
+
+
+        var existingAccountSecretAnswer = _context.Accounts.FirstOrDefault(x => x.SecretAnswer == encryptedSecretAnswer);
+        if (existingAccountSecretAnswer != null)
+        {
+            throw new AppException("Secret Answer has already been used for a previous Admin");
+        }
+
+
 
         //check if admin has been provisioned already
         ProvisionedAdmin isAlreadProvisioned = _context.ProvisionedAdmins.FirstOrDefault(x => x.Email == model.Email);

@@ -53,9 +53,9 @@ namespace BAT.api.Controllers
 
 
         [HttpPost("UpdateFile")]
-        public async Task<IActionResult> UpdateFile([FromForm] UpdateFile updateFile)
+        public async Task<IActionResult> UpdateFile(UpdateFile2 updateFile)
         {
-            var response = await _fileUploadService.UpdateFile(updateFile, Account);
+            var response = await _fileUploadService.UpdateFile2(updateFile, Account);
             return Ok(response);
         }
 
@@ -74,18 +74,18 @@ namespace BAT.api.Controllers
         }
 
 
+        //[AllowAnonymous]
+        //[HttpGet("DownloadFile")]
+        //public IActionResult DownloadFile(int FileId)
+        //{
+        //    var response = _fileUploadService.DownloadFile(FileId);
+        //    return File(response.DOwnloadData, System.Net.Mime.MediaTypeNames.Application.Octet, response.FileName);
+        //}
+
+
         [AllowAnonymous]
         [HttpGet("DownloadFile")]
         public IActionResult DownloadFile(int FileId)
-        {
-            var response = _fileUploadService.DownloadFile(FileId);
-            return File(response.DOwnloadData, System.Net.Mime.MediaTypeNames.Application.Octet, response.FileName);
-        }
-
-
-        [AllowAnonymous]
-        [HttpGet("DownloadFileUsingFields")]
-        public IActionResult DownloadFileUsingFields(int FileId)
         {
             var response = _fileUploadService.DownloadFileUsingFields(FileId);
             return File(response.DOwnloadData, System.Net.Mime.MediaTypeNames.Application.Octet, response.FileName);

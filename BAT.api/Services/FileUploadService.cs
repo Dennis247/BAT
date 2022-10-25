@@ -41,6 +41,8 @@ namespace BAT.api.Services
         Response<string> DeleteFile(int FileId);
          Task<Response<string>> UpdateFile(UpdateFile updateFile, Account account);
 
+        Task<Response<int>> UpdateFile2(UpdateFile2 updateFile, Account account);
+
         Task<Response<int>> ProcessFile(ProcessFileRequest processFileRequest, Account account);
 
         PagedResponse<List<UserProcessedFileDetailsDto>> GetProcessedFiles(PaginationFilter filter, string route, Account Account);
@@ -1203,12 +1205,156 @@ namespace BAT.api.Services
         }
 
 
+        public async Task<Response<int>> UpdateFile2(UpdateFile2 updateFile, Account account)
+        {
+            string fullPath = "";
 
-        //
+
+            FileUpload existingFile1 = _context.FileUploads.FirstOrDefault(x => x.Id == updateFile.File1Id);
+            if (existingFile1 == null)
+                throw new AppException($"Inavlid file Id {existingFile1.Id}");
+
+            FileUpload existingFile2 = _context.FileUploads.FirstOrDefault(x => x.Id == updateFile.File1Id);
+            if (existingFile2 == null)
+                throw new AppException($"Inavlid file Id {existingFile2.Id}");
+
+
+            //do file validation for both file
+
+            var fileds1 = JsonConvert.DeserializeObject<List<string>>(existingFile1.Fields);
+            var fileds2 = JsonConvert.DeserializeObject<List<string>>(existingFile2.Fields);
+
+            if (fileds1.Count != fileds2.Count)
+            {
+                string errorDetails = $"Upload Error, Cannot update, Check Fields.";
+                _context.UploadErrors.Add(new UploadError
+                {
+                    DateUploaded = DateTime.UtcNow,
+                    ErrorDetails = errorDetails,
+                    FileName = updateFile.FileName,
+                    UploadedBy = account.Id,
+                    UploadedByName = $"{account.FirstName} {account.LastName}"
+                });
+                await _context.SaveChangesAsync();
+                throw new AppException(errorDetails);
+            }
+            for (int i = 0; i < fileds1.Count; i++)
+            {
+                var sourceHeader = fileds1[i].Replace(" ", "").Trim().ToLower();
+                var destheader = fileds2[i].Replace(" ", "").Trim().ToLower();
+
+                if (sourceHeader != destheader)
+                {
+                    try
+                    {
+                        File.Delete(fullPath);
+                    }
+                    catch (Exception) { }
+                    string errorDetails = $"Upload Error, Cannot update, Check Fields.";
+                    _context.UploadErrors.Add(new UploadError
+                    {
+                        DateUploaded = DateTime.UtcNow,
+                        ErrorDetails = errorDetails,
+                        FileName = updateFile.FileName,
+                        UploadedBy = account.Id,
+                        UploadedByName = $"{account.FirstName} {account.LastName}"
+                    });
+                    await _context.SaveChangesAsync();
+                    throw new AppException(errorDetails);
+                }
+            }
+
+
+
+            var userData1 = _context.UserDatas.Where(x => x.FileId == existingFile1.Id).ToList();
+            var userData2 = _context.UserDatas.Where(x => x.FileId == existingFile2.Id).ToList();
+
+            //add data together ]
+            userData1.AddRange(userData2);
+
+            FileUpload fileUpload = new FileUpload
+            {
+                UploadedBy = account.Id,
+                DateUploaded = DateTime.UtcNow,
+                FileName = updateFile.FileName+ ".xlsx",
+                FileType = ".xlsx",
+                DownloadUrl = "",
+                HourUploaded = StringHelpers.getHourActivated(DateTime.UtcNow.Hour),
+                IsInPreviewMode = false,
+                DateSaved = DateTime.UtcNow,
+                FileSize = "50",
+                IsProcessed = false,
+                DateProcessed = DateTime.UtcNow,
+                TotalRecordCount = userData1.Count,
+                Fields = existingFile1.Fields,
+            };
+            _context.FileUploads.Add(fileUpload);
+            _context.SaveChanges();
+
+            List<UserData> userDatas = new List<UserData>();
+            foreach (var item in userData1)
+            {
+                userDatas.Add(new UserData
+                {
+                    Created = DateTime.UtcNow,
+                    CreatedBy = account.Id,
+                    Email = item.Email,
+                    FileId = fileUpload.Id,
+                    FirstName = item.FirstName,
+                    Gender = item.Gender,
+                    LastName = item.LastName,
+                    PhoneNumber = item.PhoneNumber,
+                    State = item.State,
+                    Age = item.Age,
+                    AgeCohorts = item.AgeCohorts,
+                    AirtimeUsage = item.AirtimeUsage,
+                    DateOfBirth = item.DateOfBirth,
+                    FileFields = existingFile1.Fields,
+                    IncomeClass = item.IncomeClass,
+                    LGA = item.LGA,
+                    MobileNumber = item.MobileNumber,
+                    MobilePhone = item.MobilePhone,
+                    Occupation = item.Occupation,
+                    PollingUnit = item.PollingUnit,
+                    PVC = item.PVC,
+                    StateOfResidence = item.StateOfResidence,
+                    TelcoProvider = item.TelcoProvider,
+                    VotingLGA = item.VotingLGA,
+                    VotingRAC = item.VotingRAC,
+                    WorkStatus = item.WorkStatus,
+
+                });
+            }
+            await _context.BulkInsertAsync(userDatas);
+            _context.SaveChanges();
+
+
+
+
+                    return new Response<int>
+                    {
+                        Data = fileUpload.Id,
+                        Message = "File Update sucessfull",
+                        Succeeded = true,
+                    };
+
+                
+
+                throw new AppException("File Contents Cannot be empty");
+            
+
+      
+        }
+
+
+
+        
         private async Task saveUploadedError(UploadError uploadError)
         {
             _context.Add(uploadError);
             await _context.SaveChangesAsync();
         }
+
+
     }
 }
