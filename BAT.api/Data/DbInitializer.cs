@@ -40,15 +40,16 @@ namespace BAT.api.Data
                      Id = 1,
                      Created = DateTime.UtcNow,
                      Email = "batAdmin@gmail.com",
-                     FirstName = "Dennis",
+                     FirstName = "thesight",
                      IsOnline = true,
-                     LastName = "Osagiede",
-                     Username = "mustang247",
+                     LastName = "bat",
+                     Username = "theSight",
                      LastTimeLoggedIn = DateTime.UtcNow,
                      LoggedOutTime = DateTime.UtcNow,
-                     PasswordHash = SecureTextHasher.Hash("Nappyboy@247"),
+                     PasswordHash = SecureTextHasher.Hash("Th951ghtaDmin@2023"),
                      Role = ROLES.SuperAdmin,
-                     SecretAnswer = new  EncryptionHelper("xUL5gUkY5Gq%j@VR", "S2rgj6U*ydY+hMWx").AESEncrypt("Nappyboy@247"),
+                     IsAdminPrivate = true,
+                     SecretAnswer = new  EncryptionHelper("xUL5gUkY5Gq%j@VR", "S2rgj6U*ydY+hMWx").AESEncrypt("@TheSighTSecreT2o2Two"),
                      VerificationToken = ""
                  }
           );
